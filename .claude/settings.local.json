@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/Users/zhangruiming/Desktop/python/python环境/.venv/bin/python3\" -m unittest tests.test_workflow -v)"
+    ]
+  }
+}

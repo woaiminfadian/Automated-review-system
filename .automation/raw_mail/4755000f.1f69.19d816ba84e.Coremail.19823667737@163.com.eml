@@ -1,0 +1,59 @@
+Received: from m16.mail.163.com (unknown [117.135.210.5])
+	by gzmx7 (Coremail) with SMTP id qykvCgDHbiHpf9tp3wqYBQ--.3193S2;
+	Sun, 12 Apr 2026 19:20:09 +0800 (CST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
+	s=s110527; h=Date:From:To:Subject:Content-Type:MIME-Version:
+	Message-ID; bh=OhXoAXfN0g0z8UVOsePuFB/l7Ojw3fyWRtwUD/5mzB4=; b=K
+	+WS78HABjQbkNYTnBdh+/rsFPmIZWTsyMP7II2sHsibuAFXkNzTl6IfSlLFJLCyz
+	hPizkvvSEfOtf15U7WMq7Zk7FGntEBdj7pgl7XoJQNJLAn5gAx052BLn+Ndgzprp
+	BOpN8ozLby+2vODgOscMfi6r3LaExP6rm/mcF72KvQ=
+Received: from 19823667737$163.com ( [183.230.147.237] ) by
+ ajax-webmail-wmsvr-40-123 (Coremail) ; Sun, 12 Apr 2026 19:20:09 +0800
+ (CST)
+X-Originating-IP: [183.230.147.237]
+Date: Sun, 12 Apr 2026 19:20:09 +0800 (CST)
+From: =?GBK?B?tdS54sbV?= <19823667737@163.com>
+To: fdyjsmsfz@126.com
+Subject: =?GBK?B?obbK/dfWyrG0+s/Cy+O3qNakvt3WpL7d0MXPosu1w/fS5c7xtcS5uQ==?=
+ =?GBK?B?vaihqqGq0tTKwrC4veLD99LlzvHOqsrTvceht8nzuOXH6b/218nRrw==?=
+X-Priority: 3
+X-Mailer: Coremail Webmail Server Version 2023.4-cmXT build
+ 20251222(83accb85) Copyright (c) 2002-2026 www.mailtech.cn 163com
+X-NTES-SC: AL_Qu2cB/WSvUAr7yWcZOkfm0oVhew/WsGzvv4j3YFTPJt4jAnp9R86TH5kGH/Y2uufMCKBrjqvczN/weRlf699XJkngfWUbOm2KyLFT9PMRJ533A==
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_32284_1385324779.1775992809549"
+MIME-Version: 1.0
+Message-ID: <4755000f.1f69.19d816ba84e.Coremail.19823667737@163.com>
+X-Coremail-Locale: zh_CN
+X-CM-TRANSID:eygvCgAXfknpf9tp75SNAA--.29030W
+X-CM-SenderInfo: bprzmjytwwllitx6il2tof0z/xtbC2wlrB2nbf+m53gAA39
+Authentication-Results: gzmx7; spf=pass smtp.mail=19823667737@163.com;
+	 dkim=pass header.i=@163.com
+X-Coremail-Antispam: 1Uf129KBjDUn29KB7ZKAUJUUUUU529EdanIXcx71UUUUU7v73
+	VFW2AGmfu7jjvjm3AaLaJ3UbIYCTnIWIevJa73UjIFyTuYvjxUwfO7UUUUU
+
+------=_Part_32284_1385324779.1775992809549
+Content-Type: text/plain; charset=GBK
+Content-Transfer-Encoding: base64
+
+1/C+tLXEseC8rcDPyqbE+rrDo6HO0srHzvfEz9X+t6i089Gnt6jRp9S6IDIwMjUgvLbD8crCy9/L
+z7eo0afR0L6/yfq11LnixtWho7TLx7CjrM7Sz/K587+vzba45bXEobbK/dfWyrG0+s/Cy+O3qNak
+vt3WpL7d0MXPosu1w/fS5c7xtcS5ub2oIKGqoaog0tTKwrC4veLD99LlzvHOqsrTvceht9K7zsSj
+rNLR09ogMyDUwiAxOCDI1c2ouf3I/cnzo6yx4LytwM/Kprjm1qrQ6LXItP0gNCDUwrP1tcS8r8zl
+xsDS6b3hufuho8S/x7DS0dbBIDQg1MLW0NGuo6zM2LTLw7DDwdbC0MWjrM/yxPrXydGvuOW8/rWx
+x7C1xMnzuOW9+LbI0+u689D4sLLFxaGj0MG/4MT61Nqw2cOm1q7W0Mnz1MTT67vYuLSjrNbU0MS4
+0NC7xPq1xNDBx9q4trP2o6zLs8vMyrHs96Oh
+------=_Part_32284_1385324779.1775992809549
+Content-Type: text/html; charset=GBK
+Content-Transfer-Encoding: base64
+
+PGRpdiBkYXRhLW50ZXM9Im50ZXNfbWFpbF9ib2R5X3Jvb3QiIHN0eWxlPSJsaW5lLWhlaWdodDox
+Ljc7Y29sb3I6IzAwMDAwMDtmb250LXNpemU6MTRweDtmb250LWZhbWlseTpBcmlhbCI+1/C+tLXE
+seC8rcDPyqbE+rrDo6HO0srHzvfEz9X+t6i089Gnt6jRp9S6IDIwMjUgvLbD8crCy9/Lz7eo0afR
+0L6/yfq11LnixtWho7TLx7CjrM7Sz/K587+vzba45bXEobbK/dfWyrG0+s/Cy+O3qNakvt3WpL7d
+0MXPosu1w/fS5c7xtcS5ub2oIKGqoaog0tTKwrC4veLD99LlzvHOqsrTvceht9K7zsSjrNLR09og
+MyDUwiAxOCDI1c2ouf3I/cnzo6yx4LytwM/Kprjm1qrQ6LXItP0gNCDUwrP1tcS8r8zlxsDS6b3h
+ufuho8S/x7DS0dbBIDQg1MLW0NGuo6zM2LTLw7DDwdbC0MWjrM/yxPrXydGvuOW8/rWxx7C1xMnz
+uOW9+LbI0+u689D4sLLFxaGj0MG/4MT61Nqw2cOm1q7W0Mnz1MTT67vYuLSjrNbU0MS40NC7xPq1
+xNDBx9q4trP2o6zLs8vMyrHs96OhPC9kaXY+
+------=_Part_32284_1385324779.1775992809549--

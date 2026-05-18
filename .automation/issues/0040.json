@@ -1,0 +1,11 @@
+{
+  "record_id": 40,
+  "title": "登录已被拦截",
+  "discipline": "待确认",
+  "authors": [
+    "网易邮箱账号安全"
+  ],
+  "message_id": "<736674955.97683029.1776408881380.JavaMail.safe@service.netease.com>",
+  "reason": "待人工确认",
+  "needs_anonymization_check": false
+}

@@ -1,0 +1,11 @@
+{
+  "record_id": 5,
+  "title": "Security alert",
+  "discipline": "待确认",
+  "authors": [
+    "Google"
+  ],
+  "message_id": "<b7yb3eGttb2inPWk4nsTNw@notifications.google.com>",
+  "reason": "待人工确认",
+  "needs_anonymization_check": false
+}

@@ -1,0 +1,4 @@
+import imaplib
+mail = imaplib.IMAP4_SSL("imap.126.com", 993)
+mail.login("fdyjsmsfz@126.com", "LBvfj37asRSgtqdz")
+print(mail.list())

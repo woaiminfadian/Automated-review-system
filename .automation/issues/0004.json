@@ -1,0 +1,11 @@
+{
+  "record_id": 4,
+  "title": "2-Step Verification turned on",
+  "discipline": "待确认",
+  "authors": [
+    "Google"
+  ],
+  "message_id": "<Xc7jBL5NkKQVAzo89wM4wA@notifications.google.com>",
+  "reason": "待人工确认",
+  "needs_anonymization_check": false
+}

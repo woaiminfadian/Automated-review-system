@@ -1,0 +1,1383 @@
+Delivered-To: zhangdejun652@gmail.com
+Received: by 2002:a05:612c:1d91:b0:59a:621c:78a with SMTP id ja17csp2269862vqb;
+        Wed, 22 Apr 2026 18:13:55 -0700 (PDT)
+X-Received: by 2002:a05:6a20:a10d:b0:39c:1f90:284e with SMTP id adf61e73a8af0-3a08d92e46dmr27761137637.53.1776906835575;
+        Wed, 22 Apr 2026 18:13:55 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1776906835; cv=none;
+        d=google.com; s=arc-20240605;
+        b=kGAGjRpbFYpSqmQWvtgHglwbGMhNt9mjnbuKZAF0wZZSOcN3WYtuppVoHnlyuhl1PO
+         ozSuQoQ+7J6k/Q/oAIwAUskUiFMGd1GXX6kz+y43SoaMd/AHNqVV3iXE9BJ2joLnMo7n
+         i+PrxwZPe9WbaTvGc5/aqPP54TN5WT/fWjeLef5cAOciWx0d0JRfhYuN0ABeQ1WSd3Oz
+         H/wrP9stNjJaTJprSbGvYvWnMPFb12GYlRKeUiKMupOWnKSc6Sj1qmorMwNmnv2G5fMK
+         v/sDhoXIl/epQh7SUi6YdrPlGE8czX7yoOz/6XkoVApZJ/eMOn6yLaOp2K4UV1K9fjG5
+         EovQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=to:from:subject:message-id:gmsai:list-unsubscribe
+         :list-unsubscribe-post:feedback-id:list-id:date:mime-version
+         :dkim-signature;
+        bh=XqBwWEzUL+qnLeQYDNV8INHT+BrJ5Sm606mjHkKYjwU=;
+        fh=uYBlrAU4hzic1js186XWkftfbLryqYtJEuvdOeK8XM8=;
+        b=cBnMNZN8Je6DEtgnqVasu2T2RGU6SA49N6cK3ua10FVfcfp4/9b6vQdnbpwU4AnzlN
+         wTVkvLsVwM/keEJvaKjT2uTzzvJIhLryrjseT+W/eyP+8z6Z2O7BreIXoiPDtopbttJA
+         Xc1f0qtBoU5oBhzM1LQ0xkYhhkTdq81A6cDbGAyZZR0PQ0SI/Ew2+weT+HaW/HcAfQS4
+         kHJtAQXG8Oicjg9xa/hGt/W4i2Yu3b0Sfm4Xi38hAxD1g0YZsIlgXrQzDBRP4VM3kzTh
+         3i7LBrgBwhTBTmJrEHmaU8GCPw0j52QzOujnUDJRGjLz/V+R+OriGEeqMN9tJVcFcy/O
+         5yiA==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@google.com header.s=20251104 header.b=NYyPgx9W;
+       spf=pass (google.com: domain of 3unlparikdtmcditqddzab-cdgteanvddvat.rdbowpcvstyjcvurvbpxa.rdb@scoutcamp.bounces.google.com designates 209.85.220.69 as permitted sender) smtp.mailfrom=3UnLpaRIKDTMCdiTQddZAB-cdgTeanVddVaT.RdboWPcVSTYjcvurVbPXa.Rdb@scoutcamp.bounces.google.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=google.com;
+       dara=pass header.i=@gmail.com
+Return-Path: <3UnLpaRIKDTMCdiTQddZAB-cdgTeanVddVaT.RdboWPcVSTYjcvurVbPXa.Rdb@scoutcamp.bounces.google.com>
+Received: from mail-sor-f69.google.com (mail-sor-f69.google.com. [209.85.220.69])
+        by mx.google.com with SMTPS id 41be03b00d2f7-c7977052c16sor8487138a12.7.2026.04.22.18.13.55
+        for <zhangdejun652@gmail.com>
+        (Google Transport Security);
+        Wed, 22 Apr 2026 18:13:55 -0700 (PDT)
+Received-SPF: pass (google.com: domain of 3unlparikdtmcditqddzab-cdgteanvddvat.rdbowpcvstyjcvurvbpxa.rdb@scoutcamp.bounces.google.com designates 209.85.220.69 as permitted sender) client-ip=209.85.220.69;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@google.com header.s=20251104 header.b=NYyPgx9W;
+       spf=pass (google.com: domain of 3unlparikdtmcditqddzab-cdgteanvddvat.rdbowpcvstyjcvurvbpxa.rdb@scoutcamp.bounces.google.com designates 209.85.220.69 as permitted sender) smtp.mailfrom=3UnLpaRIKDTMCdiTQddZAB-cdgTeanVddVaT.RdboWPcVSTYjcvurVbPXa.Rdb@scoutcamp.bounces.google.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=google.com;
+       dara=pass header.i=@gmail.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20251104; t=1776906835; x=1777511635; dara=google.com;
+        h=to:from:subject:message-id:gmsai:list-unsubscribe
+         :list-unsubscribe-post:feedback-id:list-id:date:mime-version:from:to
+         :cc:subject:date:message-id:reply-to;
+        bh=XqBwWEzUL+qnLeQYDNV8INHT+BrJ5Sm606mjHkKYjwU=;
+        b=NYyPgx9WBhFFsmsMbzpyBSYQlOJoskAPH7hUA9QIVXQk9C/lC9l/sMGnItb1CJ+sMa
+         Zq+ygUt2vZxDSn7k8qcVwcbKw6QPTMoxO9O9iGHNHrKV4HNs23SS46pgoqXXcRd+gJ0M
+         vs5ZjrcyWo9KQrbET2eF+/1mJkFB7/AS2bEVmNmjSIrSYADhuANo3ece/BxRJAGVtVb9
+         6RfXvQPn62RubJUP9c54xmDLudLBih6hi9672EeEk3l3pPs5F6b+kPnyvnIqfIinSLUE
+         9jPxrr3meW93cC/JICJ0jvGeM9np11gNPAFe9/cYuWLbfQRkYIBN43Z53H3zxeMy2U91
+         tlOw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1776906835; x=1777511635;
+        h=to:from:subject:message-id:gmsai:list-unsubscribe
+         :list-unsubscribe-post:feedback-id:list-id:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=XqBwWEzUL+qnLeQYDNV8INHT+BrJ5Sm606mjHkKYjwU=;
+        b=MxxE3ty+vP2/iOgrlh5NlTTfnLGqnEVrPJIiQmW6CTw8RoOuGzGxUrmY0XUOuRPpSM
+         MUEGkolW7HeUHVQVuuXrmGHuvUI4tUHc8nQVLFCcA0evQ4DYiM+NA7GJoJfSArnRuKmQ
+         E0KwJkeb1+MVKBime6w1IHUx4yQyByzPCA1e/lVpQtY/H3cBRvfBmp9soPjiDVn59jYu
+         tkmHkamNmLUFvMmQ5saDVEFEKkeEwH1vcJ9T+mLSA79E0kdForg7f+Lio1AVpZ6rVS99
+         dqEczy32b6akTblq5bjpqcxxNawXdp0hiNK3oHqHzhRXOLSE+7kuZN9G5fU3Db6zYeZ5
+         I/yA==
+X-Gm-Message-State: AOJu0YznvPMsyqnJOyKgpeH87EvXM/jkdOgKMhc/iKFOB+f68DhJSPhx
+	ehru3ofbUaW1XSqab/jOWGESoj5ekFpctploJuCW6x9qhWZWuo/94IbB8POr
+MIME-Version: 1.0
+X-Received: by 2002:a05:6300:2707:20b0:3a2:f402:50f7 with SMTP id
+ adf61e73a8af0-3a2f4025617mr7327307637.32.1776906834933; Wed, 22 Apr 2026
+ 18:13:54 -0700 (PDT)
+Date: Wed, 22 Apr 2026 18:13:54 -0700
+List-Id: <759cccbee0e55c3b6512b8d6481df6bac79481ecfa1f9f034b056e246417c47c@google.com>
+Feedback-ID: P484d4c3660-7690c81c9a:C1405956802:M111163579-en:gamma
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+List-Unsubscribe: <https://myaccount.google.com/communication-preferences/auto/unsubscribe/gt/ADMV5J-Lzwmdjt00RbrrXvISpE_H_q9HUKM06akgBU7qwH55N2ou1dyO_kglpSmZfW5Hzu_ywZiTT2-cMID5YowBnr5HsgsinPpnLu3XpZgBbKBWsx2sEkqI7rCs8j88cTwbtlGFRk6M1-k80ZwMeXlV3KXSNeIxDYpFO6Gmt8xFdzQZgKDXpHj4VJEydCw2yqxkYig649K1-QVUc5AAbSOKjew7KmrlVJwfx7nie1KrblQBTCDXT5QL?utm_source=gm_header&utm_medium=email>
+gmsai: false
+X-Google-Notification-Metadata: EgA
+X-Notifications: eea7023e8b760000
+X-Notifications-Bounce-Info: AZ3VuTgVOHiUBp1UkHQnYbi-YK3hUqG6fI7VavU-yhf8MMJnBRIdZCMpUoz9oeXIBYP1hlCR_RjzbbRK9XpuGmU5bktk-EcjQZwueGH_OLYSzpUXYD42jPyJke957BFp7uqHEo9zr-QpzwcLjc8gSSb-DRtJcbfGjl9zdrvvHeokFYShtYrU2mzCbJnGKQdoi3FvnQwCRudRQBCUrprlH8ULRwiXE_A5sL3KdNxGNHwxqATRABgkPQItK0HYu_PuEDqG0Z2WHwi_7wBCQth-opazLmni8hNy29cLjGAbXowDWdqC5stGHeJbFKNG722TTRXVfk4a-gHPg0hZc5afsn9TBN4y-HO6ce_OUpbC3E8Q8XsxYMlz-hGLz46FWCZhxD6IBpRXkOjQRd5ofSW0cIY5Qmfew4P325qmsPVsZsmIUF9YZrvfJwnyaFenRct3LxbyEW8dOHHQJFR5YsbqnozKFEgpVEx_7PICVB6SWGxNxJVxOslLI2N6hrBlltrsW82GV8ghqzRA-XG4AaZCFYMr0WLPSGcT3x83HBtmCOahXtUY4K1f6t_h1EC6yBJESdq4-aZUZKIqdjFKHKMayPR4yykWs9YCXfb7G6o0NjAwNjA0MDQxNTM1NTk2OTMzMg
+Message-ID: <b360e9c3e17ad02d08272656d2decaddc9b6c199-20393851-337030291@google.com>
+Subject: New in NotebookLM: Editable Slide Decks and Infographic styles
+From: NotebookLM <NotebookLM-noreply@google.com>
+To: zhangdejun652@gmail.com
+Content-Type: multipart/alternative; boundary="000000000000b1f83f0650165cae"
+
+--000000000000b1f83f0650165cae
+Content-Type: text/plain; charset="UTF-8"; format=flowed; delsp=yes
+Content-Transfer-Encoding: base64
+
+PDxodHRwczovL2MuZ2xlL0FETVY1Sl9qX0dKQ2tnTHBKOGxFbE0zTWZiR213c2RCcmhNVklQdndC
+M3REaGIyODFXLTgxcXBBTkplVFZjeTUyOXNCcWZ0QkpuZzc4eXpTYWxSWE5uZU1vcVNYWmJ6NDRX
+U0I2Nk5yM0ZmdjF6ckJPQmR5RVpyQUswa3Q2N2RKRC1QYUFCN2kyV1J6Tnh2VmNsWDd2RWI5M0pw
+MXdwZ1ZzN0hRVWVWTjhGaVMtZnQxV3pLN0laMDY0MW91dTFrTjdLVGJQdU9mdjMxVjFDUWhXS3Nf
+OWc3ZFVMQkF1V3hXck1ZYWpzQnBvNEQzSEkydktSY09aRVBPVDM3QW10YktmMkllSjluc2JNeDJl
+N3ExcmVFZ1E2aXVlcHB5OWNpeGVVQUIyeElxa0RqSk9mVGdvYXN5d0Fkc1BVUUI1OERWRzBnc1p1
+c1pEWlRERkpxSl9wd3lmVkluM3NBMklfbW5FNXFkVWM0eVFSeGhXbnVmVE9adXAtNldBUT4+DQpH
+ZXQgdGhlIHZpc3VhbHMgeW91IHdhbnQNClRoZSB3YWl0IGlzIG92ZXIuIEVkaXRhYmxlIFNsaWRl
+IERlY2tzIGhhdmUgYXJyaXZlZA0KSGl0ICJSZXZpc2UiIGFuZCBlZGl0IHNsaWRlcyB3aXRoIHNp
+bXBsZSBwcm9tcHRzLiBUd2VhayB0ZXh0LCB2aXN1YWxzLCBhbmQgIA0KbGF5b3V0cyB0byBwb2xp
+c2ggeW91ciBwcmVzZW50YXRpb24uDQpUcnkgaXQgb3V0ICANCjw8aHR0cHM6Ly9jLmdsZS9BRE1W
+NUpfelFfWk9QZG1mMFRSN0JPbU83MkhsMExTV1ZpRG5XWGhHVVFqSEZWeDM0ZjNFMjFka29IYjBs
+YVVuX2xnYWQ0ODVJV044Q3JYMU5ydlh0T21GRDVxSC03VWdNUDhiM1FNUk56MUVxWmcxYlNKb0pw
+Wjh2bGJwV2hsRk1QSE5GNUU4NmxjZVpPREhldUctQjlFZ1ctWXIzcUpydXhObjFGSlRoNHAyc0pm
+TlB4LW0zUVpJU1hDUkxUNlgxWGc3cllqRXlmVVF3QmFfVUJYd2d1c1JkYS1TVXZtQ3czRHRPdGsz
+Sm0xSVExNEhLMTZyMHVpeHprQUk0UXJhWWVpQ25MQnRvdUduSk9zd2xqcm4xbHlvMl96T29GNzcw
+V0pydlhJVkpvVERfeTRtVWlKNkZGejdPZHAyMmFkTkxBZmIwdEhDelJuWTRVTlZPakIwTExaUEZm
+M3ZOWGJxMjV2OHUzV3pDYXpIVzNSeE45dndlV1pmUkszdGV4aExUWWpoclBsdm9vak5OcEFIc1lW
+cENDMG9MTWhyUjBqVz4+DQpNYWtlIEluZm9ncmFwaGljcyBpbiB5b3VyIG93biBzdHlsZQ0KVHJh
+bnNmb3JtIGFueSB0b3BpYyBpbnRvIGFuIGVuZ2FnaW5nIHZpc3VhbCB3aXRoIG5ldyBwcmVzZXQg
+c3R5bGVzLiBDaG9vc2UgIA0KZnJvbSBjbGF5LCBhbmltZSwga2F3YWlpLCBhbmQgbW9yZSwgb3Ig
+cHJvbXB0IGEgY3VzdG9tIHN0eWxlIG9mIHlvdXIgb3duLg0KVHJ5IGl0IG91dCAgDQo8PGh0dHBz
+Oi8vYy5nbGUvQURNVjVKODV2RkNyNmo5RjcyRndaZDdpOVlSYjN5TUhKbzZfSUJRbUxGTkh0MTk2
+MnFNLThsY2JVTVB3a3pKbXJPOHp1c2hCZ2N1Ylc2NnU1a1dQQ3NTUUR6QjhVb2xoWUlmQlVjMFhW
+eEFhRUU5RzdmWnRmaVpyNnBqNXg4R3JJX0dOWnJ5cG45UDBmdlpIYnFVdWsxN1FSVXNnWDhQV2VF
+MUtMbi1rMnplT01jVTNZZDFrQ3NTZW8zcUZPMUlUSHUwZFE5bWhNU0h5a2Z6aC1sbDhaVDZMSERE
+RkJFWnQ1TXB4OXg0OExJN1ZyMGpvY3pKN2c1dl9Cd2EyT1lNR2xKaDU5SmdjeW5QSWdLZnp0bmdE
+dkp4ako0aEVselYtbW1Ld3FlLTE1MDFnMGd6YXJQOVBkcktGdExoR19qMW9keFRGd1UtZWttRFlQ
+bnZ1OWt1UEpOQVIyMkNkaGgwbHpNaHc5ajhIYUFhdTR3QWxISFhaWm9ZS25VczR2amRNRVJ3Znk0
+bkJkLXhYUFZXQjNjTjVhb09ENE1xVTBmST4+DQpUYWtlIHlvdXIgbm90ZWJvb2sgZXZlbiBmdXJ0
+aGVyIHdpdGggdGhlIEdlbWluaSBhcHANCllvdXIgbm90ZWJvb2tzIGFyZSBub3cgaW4gR2VtaW5p
+LsK5IENyZWF0ZSBuZXcgb25lcyBvbiB0aGUgc3BvdCBvciB0dXJuIHlvdXIgIA0KY2hhdHMgaW50
+byBOb3RlYm9va0xNIHNvdXJjZXMgZm9yIGV4aXN0aW5nIHByb2plY3RzLiBNb3JlIGNvbnRleHQu
+IFJpY2hlciAgDQppbnNpZ2h0cy4gQmV0dGVyIG5vdGVib29rcy4NCkV4cGxvcmUgR2VtaW5pICAN
+Cjw8aHR0cHM6Ly9jLmdsZS9BRE1WNUo5MmJuMTJvLW1jWThEa1VIQnRlNHAwQUZab1MxZGhNYU1p
+LWF4UXRVQVUzSlNZQjFrYjBUSU5ZUWQwQkVkWG41dGUzMUFkcndWUnpNbDg5bVZkSWlUd1ltNDd5
+QXZYQ3ktNWJNWW5wcEZCUnpEQV9uVnY4OEVqanJTMDlvZndZZWF4eHZGUlFGUkg2cXNoU2JOZlJj
+NjVWam1fdVNvZmVXdlJoN0hFamVSMkdUOUU4NUxjZ09qblUwb00tOEJTRUowVlNXZzZtMXlNMmhE
+TXlFRDlVZ0RHdDIwUHRxM3hWUHphbEhHb25fRlFHWHpVNk1DUGRNYWpZNmVVVjlsUVJrSDdSdEg4
+ZV9wX3N0VHg1WHdIVFhIMlliTTFRMFVjVHEwS2pmRzRvQ0s2Vm83MTVFdUV2dGZybEdndUlBbDFO
+VWZQcjdZcmhJa3BFSVZ6R3BjLWNoOWVpdHhHWnVxUkp5NTFCWmVtX05OemFFZnlvWUJQMTFZYVhT
+Sk1QblNGSzVmV0wzeFBlM3c+Pg0KTGVhcm4gbW9yZSAgDQo8PGh0dHBzOi8vYy5nbGUvQURNVjVK
+OEUxb3lqWGlFQVFfdmpkZzFKbld6RE15R3dqeEFNbGRkVzFybzROWVZsVHlQSmRWb1pvTDdzOEtK
+ZzUxZVNBTl9CLV8wbGM4M1hVQjlnalE3OGFOcEhVaWxyUVoyU0pxdk14MEY4OF9hUVhKSmtCM1BF
+T3dXVEs4ejU1NW1aRTVrMXhRRWpHRjBqTENnclhmVnRkWll4alRyVmhLOXFiWUdBamNaVU9heVda
+cFVWMkdGWDdfVk0xSWJvQzF4eWdzTDBNb0o1V1ZZb21IcmlyeTR5eEczOExaNzlONW5MTjV3SG90
+X2c0QlB3QnFueHpIMXBsMG1pN2p5QUhudG1RMmJlTlY3ZVdfLXNVUkRyWVIxN2FBTDQzQjJ4a3pP
+SXVLVnpISEhHTzNCcXNiTGkySzIza1VMRU4wcHAtNjBuekI3cDFjZy1SOEJ6bWtHcGUxWXp4S3hN
+OC1sNEx0TVVhM29SMFhLaWZmRHRQUDZ2cHUzS29nWU8wY05GNzJjSHBLa1Z3RmJLOF9ENXdTeE9o
+c3hqT1Jqd0pQUGlGVm84ZFZEV3NTMk01cjlvdV9uSHVZem5wdlgybkM3NT4+DQrCuSBEb2VzIG5v
+dCBpbmNsdWRlIHNoYXJlZCBvciBmZWF0dXJlZCBub3RlYm9va3MuIFNlZSBoZWxwIGNlbnRlciAg
+DQo8PGh0dHBzOi8vYy5nbGUvQURNVjVKOEhfOS1zdkJCX05XUUVUTTlXRkh5VFNCMWVFbXdjZHhJ
+d212TDFBM1RjZjVScjU4OGxNZXhNOFlXYjBraTNRSnlHSkZqZkVDaTJ3Y0JQaXVxVHhmMnZaNkJR
+V0dOa3B3VUhuN04ycFlHWllmcjluYjd6aEgxX0hsQzNfVmw5NXhnV29uZmhNUGNkdTZuQ0lMRmR2
+d2w2S2NValJSbjdxb1pOMndfOUNZUTVFNFQxa29zeDZkRVlfamptVy1vdGw1dVBOLWUyUEhyalBk
+R1QzRU1hVExMc05JQ003UGNCUlpTV1dFOUViX0ZPRDFwQjdCX0tEWFNuQzhleHd3Pj4gIA0KZm9y
+IGF2YWlsYWJpbGl0eS4NCjw8aHR0cHM6Ly9jLmdsZS9BRE1WNUpfVEpsRHd0c3NFUExWd1UzVW93
+SzBVeEtHNzBZMUFiYUtYOFR5am1QcUFxWEdWcmprYjNTOXhvZ3prTmpZUGR1d3FWTVg0MjNSckpN
+YzNUYmhYam9XMTlmWkxvSmVXOEN3cmpobkhxN3R0WVlmVnpUSWpJcWJFQ0N1NmRlSFZ1ZnFTcEk1
+WjUydHhGeklFUkFfSTY3QzdOOGx2eDljSldneW9hYVpQNklTb05Md0xtQUZ4VFFHZUI0X0hnQ3dn
+d21jd3hDNHYyNWRwck5pbkd1aTRRMDdKN211eDd2TnhYUXVITmtyRWJqb1FSWG91N3Q5MEgwcjE0
+bGg2cUVVb1JxUTgzWmZWQTFiOUhfZkhiSG13ajlXNVhhR19kUm5uWnZmRFlZbl9jUXZIUFZaUlRw
+Y01feVZnWmJuVkJfTjBNVkRwR2RXSjZicDdFLUUySlE+Pg0KPDxodHRwczovL2MuZ2xlL0FETVY1
+Sl93d0RyVFdGVG9pV1duTjIxUzNpaXFYYkVUQUxBNEpGVHpqeVZSN0Fxb0RhLVpmbmFCZHhjRHFT
+UnNtSmdCTVluMzdMbUdldWtER3g2b2ZJZEhHN3Jza29WN3lxYlZjdVAzQlVjQl9BMHBtejJ5czEw
+aFcxcGZlM183TXh5aTZNbTFDRGtzRUZ2VF9CX1h6ZERYbWc+Pg0KPDxodHRwczovL2MuZ2xlL0FE
+TVY1Sjk3M0JhV0VHUjBkMDk2eXhod0w3SnFPY0psZDNGZy1mMjBkeU5vRXd0SmowMHhCaHd5M3N1
+dVRnd25SMkNCUHFPZkdZMkZYMHZralVPYWlPN3VXNmtmeWJFY2ZVeC1DNzQyY0FDZ0ZQZ1VicUpz
+UzBBRkVEY2lvbzlVQ09JSTZmeHo4LVg2R2xKdkVCazY2Wnc+Pg0KwqkgMjAyNiBHb29nbGUgTExD
+IDE2MDAgQW1waGl0aGVhdHJlIFBhcmt3YXksIE1vdW50YWluIFZpZXcsIENBIDk0MDQzDQpUaGlz
+IGVtYWlsIHdhcyBzZW50IHRvIHpoYW5nZGVqdW42NTJAZ21haWwuY29tIGJlY2F1c2UgeW91IHNp
+Z25lZCB1cCB0byAgDQpyZWNlaXZlIGVtYWlscyBhYm91dCBOb3RlYm9va0xNLiBJZiB5b3UgZG8g
+bm90IHdpc2ggdG8gcmVjZWl2ZSB0aGVzZSAgDQplbWFpbHMsIHBsZWFzZSB1bnN1YnNjcmliZSAg
+DQo8aHR0cHM6Ly9teWFjY291bnQuZ29vZ2xlLmNvbS9jb21tdW5pY2F0aW9uLXByZWZlcmVuY2Vz
+L3Vuc3Vic2NyaWJlL2d0L0FETVY1SjhsNFQ2LTRzblJrZXdCSDdsZEZ4WnRBNE9ReTJHTVhELU52
+NjVUODdmRVhYZmVQSXFJQ1ZNTUVmdTNILU9SZTdzQzRGRnEwRDJPbmpCNEl3NW5iU0RtX3JyWVFW
+N0VYR1FHRWVKbkwxWFJ3TzNCUG4yOXhDQm5MNFRacVZNanpMdnU2dXZGOHJndWpXTHQxeTN6ZzBi
+WkM1QjFmSmJ5Yl9INmdwT3NIdzZfSGhneGZKZkZTYnU5M2VqUE5hb3lTeGhnMlpvM3ZVTUhnOGRY
+T1kwRkpzeXZZU2ZCM3EtOTc1ZHAwMGJjN2NSd2hsQ294QT91dG1fc291cmNlPWdtJnV0bV9tZWRp
+dW09ZW1haWwmYXV0bz10cnVlPi4NCk1hbmFnZSBQcmVmZXJlbmNlcyAgDQo8aHR0cHM6Ly9teWFj
+Y291bnQuZ29vZ2xlLmNvbS9jb21tdW5pY2F0aW9uLXByZWZlcmVuY2VzL21hbmFnZS9ndC9BRE1W
+NUo5enQ1cGI0dXVINkpmNjZOem5KT0l1ZVl2ZjZJZDBDbHR6c0RjaUJmaDNWN01MdUNSWDZhUzU5
+b0t5NzVVeU80NlR0QmJWaEdJUHEzVHdpbXI5bi1qNjJnNWNWbFo5RXhnT09jYkVibVF1YVRSaGxu
+LWJxNFE5YWxBVjRZZnNtNGVDZnA5dGg2Mk1VOURBaERNQjh4RGhDMjBjUUlSd2dXeW9wTjhqb1NG
+eUlscTVBekU2NHFWS3JZZjFZUm9TczZ5OER0Vkg0eDNlRjA0Z1EyenI/dXRtX3NvdXJjZT1nbSZ1
+dG1fbWVkaXVtPWVtYWlsPiAgDQp8IFByaXZhY3kgUG9saWN5ICANCjw8aHR0cHM6Ly9jLmdsZS9B
+RE1WNUpfOTFYVGo0MXBPUEh0dV9ZeHRpUUlvZmpoaHNHaG9YX3FKOU9wN2VGZDFMdkRfYjUtd1c1
+NzlrWXZtSXZBS2c3YURzb2pRY1VUZTl6TE9WYS1KajhCTHJYT2JKM1J6VWhUVmNmRkZEMjBUMEhp
+SlhiSVNFdTZRalNDUzh0ZjRaSlZNaFA5Z2p0aUlNc0NCWEdwV0NxcURiMmdSUUtrPj4NCg==
+--000000000000b1f83f0650165cae
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<!--DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"-->
+<html xmlns=3Dhttps://www.w3.org/1999/xhtml lang=3Den>
+<head>
+<title>Explore updates to NotebookLM</title>
+<meta http-equiv=3DContent-Type content=3D"text/html; charset=3Dutf-8">
+<!--[if !mso]><!-->
+<meta http-equiv=3DX-UA-Compatible content=3DIE=3Dedge>
+<!--<![endif]-->
+<meta name=3Dviewport content=3D"width=3Ddevice-width, initial-scale=3D1.0"=
+>
+<meta name=3Drobots content=3D"no index">
+<!--[if mso | ie]>
+<style>
+.out_border{
+border-top: 12px solid #4259FF !important;
+border-right: 24px solid #4259FF !important;
+border-bottom: 12px solid #4259FF !important;
+border-left: 24px solid #4259FF !important;
+padding: 0px !important;
+}
+.out_border2{
+border-top: 8px solid #4259FF !important;
+border-right: 18px solid #4259FF !important;
+border-bottom: 8px solid #4259FF !important;
+border-left: 18px solid #4259FF !important;
+padding: 0px !important;
+}
+</style>
+<![endif]-->
+<style>
+body {
+font-family: Google Sans Text, Roboto, Helvetica Neue, Helvetica, Arial, sa=
+ns-serif;
+font-size: 12px;
+color: #000000;
+-webkit-text-size-adjust: none !important;
+-webkit-font-smoothing: antialiased !important;
+-ms-text-size-adjust: none !important;
+}
+table, tr, td {
+mso-table-lspace: 0pt;
+mso-table-rspace: 0pt;
+}
+a:link, a:visited, a:hover, a:active {
+color: #4285f4;
+text-decoration: none;
+}
+.appleLinks a {
+color: #000000 !important;
+text-decoration: none !important;
+}
+strong {
+font-weight: bold !important;
+}
+em {
+font-style: italic !important;
+}
+.yshortcuts a span {
+color: inherit !important;
+border-bottom: none !important;
+}
+html {
+-webkit-text-size-adjust: none;
+-ms-text-size-adjust: 100%;
+}
+.ReadMsgBody {
+width: 100%;
+}
+.ExternalClass {
+width: 100%;
+}
+.ExternalClass * {
+line-height: 100%
+}
+td {
+-webkit-text-size-adjust: none;
+}
+a[href^=3Dtel] {
+color: inherit;
+text-decoration: none;
+}
+.mob-hide {
+display: none !important;
+}
+div, p, a, li, td {
+-webkit-text-size-adjust: none;
+}
+td {
+text-decoration: none !important;
+font-variant-ligatures: none !important;
+}
+a[x-apple-data-detectors] {
+color: inherit !important;
+text-decoration: none !important;
+font-size: inherit !important;
+font-family: inherit !important;
+font-weight: inherit !important;
+line-height: inherit !important;
+}
+@media only screen and (max-width: 950px) {
+.dnone{display: none !important}
+.dblock{display: block !important}
+.wd360{width: 360px !important}
+.wd328{width: 328px !important}
+.wd288{width: 288px !important}
+.wd270{width: 270px !important}
+.wd16{width: 16px !important}
+.mod1_head1{
+font-size: 34px !important;
+line-height: 41px !important;
+}
+.fs24{font-size: 24px !important; line-height: 36px !important;}
+.ht16{height: 16px !important;}
+.ht40{height: 40px !important;}
+.ht44{height: 44px !important;}
+.ht48{height: 48px !important;}
+.text_center{text-align: center !important;}
+.ht12{height: 12px !important;}
+.pd0{padding: 0px !important;}
+}
+</style>
+</head>
+<body style=3D"margin: 0 auto; padding:0px;">
+<!-- Goto Action Button start -->
+<div itemscope=3D"" itemtype=3Dhttps://schema.org/EmailMessage>
+<div itemprop=3Daction itemscope=3D"" itemtype=3Dhttps://schema.org/ViewAct=
+ion>
+<link itemprop=3Durl href=3Dhttps://notebooklm.google.com/?utm_source=3Dema=
+il_notebooklm&amp;utm_medium=3Demail&amp;utm_campaign=3DFeature_email_4&amp=
+;utm_content=3Dsubject_line_try_it_now&amp;utm_smc=3Demail_notebooklm_email=
+_Feature_email_4_subject_line_try_it_now>
+<meta itemprop=3Dname content=3D"Try NotebookLM">
+</div>
+<meta itemprop=3Ddescription content=3D"Try NotebookLM">
+</div>
+<!-- Goto Action Button End -->
+<!--[if !mso]><!-->
+<p aria-hidden=3Dtrue style=3D"padding-top:0; font-size:0px; line-height:0p=
+x; margin:0px; display: none;" align=3Dcenter>Explore new ways to create=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=
+=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=
+=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=
+=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=
+=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=
+=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=
+=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=C2=A0=
+=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=
+=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=
+=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=
+=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=
+=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=
+=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=
+=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0=E2=
+=80=8C=C2=A0=E2=80=8C=C2=A0=E2=80=8C=C2=A0</p>
+<!--<![endif]-->
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter width=3D100%>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter width=3D720 class=3Dwd360>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop bgcolor=3D#ffffff>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter width=3D100%>
+<tbody>
+<!-- NBLM Logo Start -->
+<tr>
+<td align=3Dcenter valign=3Dtop style=3D"border-bottom: 1px solid #DADADE;"=
+>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D24 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop>
+<a href=3Dhttps://c.gle/ADMV5J_gWvv0a-UQEEcsqv4aC7ze_AGKLw3atjZZxMgdb_ODT-3=
+SbHtV1R7AT8jbdSoLvV6OnFQ-dyRzJzUjsE7caRs-2k0tDFdqYijZJQoFFNKbgPTS9u4Tl-M47F=
+3ZpYs6KiGEYOuW-HBv2YSwVmU3aBhLvQ9GftHYbEXO1_7LFRS9KbcuhrXQvJym1IHlo8lppzucK=
+AEjNJW9ehwkBNsPJLrAJpZmCBOhTBlGkiNdBb7sfju6lKiCd-y6IoZszCltIjacRFGoTlvWqTjM=
+y6LUlsF0eEHeJitSip1YYn7trU9KAAEG2YIhOvDqSR108YjUbIidhQFFcKmtoT3Fg9ljpQOZwBt=
+kQ-O0sRiQeVvwuZTbzwYFaIEZeFxD target=3D_blank>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/notebooklm-google-notebook=
+lm-transparent-w458px-h48px-2x.png width=3D229 height=3Dauto alt=3D"Google =
+NotebookLM logo" title=3D"Google NotebookLM logo" style=3D"display: block;"=
+>
+</a>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D19 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> </tbody>
+</table>
+</td>
+</tr>
+<!-- NBLM Logo Start -->
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D48 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<!-- Body Start-->
+<!-- Hero module-->
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 width=3D624 clas=
+s=3Dwd288>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 48px; line-height: 58px=
+; font-weight: 500; color: #202124; font-family: Google Sans, Google Sans T=
+ext, Roboto, Helvetica Neue, Helvetica, Arial, sans-serif;" class=3Dmod1_he=
+ad1>
+Get the visuals you want
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<!-- Hero module-->
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D48 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <!-- SLIDE DECKS module-->
+<tr>
+<td align=3Dcenter valign=3Dtop style=3D"border-radius: 20px;" bgcolor=3D#F=
+8F8FA>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 width=3D100%>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D48 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 width=
+=3D560 class=3Dwd288>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/notebooklm-slides-deck-ico=
+n-transparent-w96px-h96px-2x.gif width=3D48 height=3Dauto style=3D"display:=
+ block;">
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D17 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 28px; line-height: 34px=
+; font-weight: 500; color: #202124; font-family: Google Sans, Google Sans T=
+ext, Roboto, Helvetica Neue, Helvetica, Arial, sans-serif; padding: 0px 15p=
+x" class=3D"fs24 pd0">
+The wait is over. Editable Slide Decks have arrived
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D11 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 14px; line-height: 21px=
+; font-weight: 400; color: #202124; font-family: Google Sans, Google Sans T=
+ext, Roboto, Helvetica Neue, Helvetica, Arial, sans-serif; letter-spacing: =
+0.2px;">
+Hit &quot;Revise&quot; and edit slides with simple prompts. Tweak text, vis=
+uals, and layouts to polish your presentation.
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D16 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <!-- CTA-->
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop bgcolor=3D#4259FF style=3D"font-family: Goo=
+gle Sans, Google Sans Text, Roboto, Helvetica Neue, Helvetica, Arial, sans-=
+serif; font-size: 16px; line-height: 24px; color: #ffffff; font-weight: 500=
+; border-radius: 100px; letter-spacing: 0.1px;">
+<a class=3Dout_border href=3Dhttps://c.gle/ADMV5J9s1FMRPv8NwmvAdxhz5PQ4PIsL=
+VzD_tRdiATiOtt2jbLoeiURn_PHgtlz4g-8aZ_1mLYQz3j4m_EnWN506-jDMbHdLnWqUhUX_HIg=
+UatlAg0aC250BaoKPbexVQ-zgII3eA17av36m5KF3ECDLLRdtDtK92nKfNXagLqCGg17QIwVjqg=
+ZX_XAplgxIPEGewrBVRGti24Mq3aWWS9NDbNu29y8wKZX-uALmSQkbJWC_jrPlCntJT_8ZFtBNN=
+Oc1kRAArN0NHAQfdL0VuzGB7z_3Rwwlr64-65EtmF2hje0S11umqtIrMlllEm0xjG0fauAI3U-b=
+s9Bj33qL013qXBE8Xsaoy-WaJICwVR1-ysNfhr32Z7dnC1zcuF0eYy4MRG-bbkZtZUZb6sTA6HQ=
+aCnnoHEO7ZNg target=3D_blank style=3D"text-decoration: none; background-col=
+or: #4259FF; padding: 12px 24px;border-radius: 100px;color: #ffffff;display=
+: block;">Try it out
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<!-- CTA-->
+</tbody>
+</table>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<a href=3D#>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/notebooklm-slidedecks-star=
+tup-blueprint-desk-transparent-w1440px-h972px-2x.png width=3D720 height=3Da=
+uto style=3D"display: block;" alt=3D"A multi-layered slide deck with a &quo=
+t;Revise&quot; button and a prompt to change the title." title=3D"A multi-l=
+ayered slide deck with a &quot;Revise&quot; button and a prompt to change t=
+he title." class=3Ddnone>
+<!--[if !mso]><!-->
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/notebooklm-slidedecks-star=
+tup-blueprint-mob-transparent-w720px-h640px-2x.png width=3D360 height=3Daut=
+o style=3D"display: none;" alt=3D"A multi-layered slide deck with a &quot;R=
+evise&quot; button and a prompt to change the title." title=3D"A multi-laye=
+red slide deck with a &quot;Revise&quot; button and a prompt to change the =
+title." class=3Ddblock>
+<!--<![endif]-->
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<!-- SLIDE DECKS module-->
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D24 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <!-- INFOGRAPHICS module-->
+<tr>
+<td align=3Dcenter valign=3Dtop style=3D"border-radius: 20px;" bgcolor=3D#F=
+8F8FA>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 width=
+=3D624 class=3Dwd288>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D48 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/notebooklm-graph-icon-tran=
+sparent-w96px-h96px-2x.gif width=3D48 height=3Dauto style=3D"display: block=
+;">
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D16 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 28px; line-height: 34px=
+; font-weight: 500; color: #202124; font-family: Google Sans, Google Sans T=
+ext, Roboto, Helvetica Neue, Helvetica, Arial, sans-serif;" class=3Dfs24>
+Make Infographics in your own style
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D12 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 14px; line-height: 21px=
+; font-weight: 400; color: #202124; font-family: Google Sans, Google Sans T=
+ext, Roboto, Helvetica Neue, Helvetica, Arial, sans-serif; letter-spacing: =
+0.2px;">
+Transform any topic into an engaging visual with new preset styles. Choose =
+from clay, anime, kawaii, and more, or prompt a custom style of your own.
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D16 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <!-- CTA-->
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop bgcolor=3D#4259FF style=3D"font-family: Goo=
+gle Sans, Google Sans Text, Roboto, Helvetica Neue, Helvetica, Arial, sans-=
+serif; font-size: 16px; line-height: 24px; color: #ffffff; font-weight: 500=
+; border-radius: 100px; letter-spacing: 0.1px;">
+<a class=3Dout_border href=3Dhttps://c.gle/ADMV5J8nU1DRc91zz4VLlQK7TK5iY4aW=
+QFyovzUsqSVFpLo7o38RghjpiE_-lon1FC6L06zYqP71Mvi2Ur9fTTWEGZc2q_jwfDS_DKTL-6_=
+QOrA6k-f71iZM7DbfHtBwj3DZ1eR_BdH-Z-Hh8K4usqsUWL5qpyteSYMEfSACxOqryFy87EU6Cb=
+qx0CXgcjYBgqnVJYKuerdRLOwhavzKp8dM7D-K4c7mYkLvyyC6n3aDsNBTRnHtx8tu9fUx5jFSw=
+k_wo0jdh1OlYWiGhRmtl7zORZrIR55aa5aL7FwRKr85Y-1MhKUR9WEh0KQ-ekH5pwUD3Gai9thn=
+Pfk50dNQeR7peZPExmGCDo2r4uQwekVGMuvFltWkUWe9UM8EKg2CrO2k6wojnryMIInqkhYAPGn=
+tU8w8pU0iTQ target=3D_blank style=3D"text-decoration: none; background-colo=
+r: #4259FF; padding: 12px 24px;border-radius: 100px;color: #ffffff;display:=
+ block;">Try it out
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<!-- CTA-->
+</tbody>
+</table>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D40 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<a href=3D#>
+<!--[if !mso]><!-->
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/notebooklm-infographics-de=
+sk-transparent-w1440px-h1056px-2x.gif width=3D720 height=3Dauto style=3D"di=
+splay: block;" alt=3D"A step-by-step infographic presented in a playful, cl=
+ay-like visual style with icons for style." title=3D"A step-by-step infogra=
+phic presented in a playful, clay-like visual style with icons for style." =
+class=3Ddnone>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/notebooklm-infographics-mo=
+b-transparent-w720px-h640px-2x.gif width=3D360 height=3Dauto style=3D"displ=
+ay: none;" alt=3D"A step-by-step infographic presented in a playful, clay-l=
+ike visual style with icons for style." title=3D"A step-by-step infographic=
+ presented in a playful, clay-like visual style with icons for style." clas=
+s=3Ddblock>
+<!--<![endif]-->
+<!--[if gte mso 9]>
+<v:rect xmlns:v=3D"urn:schemas-microsoft-com:vml" fill=3D"true" stroke=3D"f=
+alse" style=3D"width:720px; height: 528px; background-size:100% 100%;backgr=
+ound-repeat: no-repeat;">
+<v:fill type=3D"frame" src=3D"https://www.gstatic.com/gumdrop/files/noteboo=
+klm-infographics-desk-static-transparent-w1440px-h1056px-2x.png" color=3D"#=
+F8F8FA" />
+<v:textbox inset=3D"0,0,0,0">
+<![endif]-->
+<!--[if gte mso 9]>
+</v:textbox>
+</v:rect>
+<![endif]-->
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<!-- INFOGRAPHICS module-->
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D24 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <!-- GEMINI module-->
+<tr>
+<td align=3Dcenter valign=3Dtop style=3D"border-radius: 20px;" bgcolor=3D#0=
+00000>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 width=3D100%>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D40 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 width=
+=3D624 class=3Dwd288>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<img src=3Dhttps://www.gstatic.com/growthlab/api/DiYMkimu1po9B78GuiUDNImqbf=
+hWjaKRkMMhAlRx.png width=3D36 height=3Dauto style=3D"display: block;">
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D16 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 20px; line-height: 30px=
+; font-weight: 500; color: #FFFFFF; font-family: Google Sans, Google Sans T=
+ext, Roboto, Helvetica Neue, Helvetica, Arial, sans-serif;">
+Take your notebook even further with the Gemini app
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D12 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 14px; line-height: 21px=
+; font-weight: 400; color: #FFFFFF; font-family: Google Sans, Google Sans T=
+ext, Roboto, Helvetica Neue, Helvetica, Arial, sans-serif; letter-spacing: =
+0.2px;">
+Your notebooks are now in Gemini.=C2=B9 Create new ones on the spot or turn=
+ your chats into NotebookLM sources for existing projects. More context. Ri=
+cher insights. Better notebooks.
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D16 =
+width=3D1 class=3Dht12 style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <!-- CTA-->
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop class=3Ddblock>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<a href=3Dhttps://c.gle/ADMV5J97pJTrl8udQdPRqQZZYuYVwkwCouhAHilk2ZJ9fba92BH=
+pqZ_Sm7TfKITofrIg-kt-bU2BlZKDjOZ7LwGum76HbWMy9LXhA7Ov93QASpxYBE6BgZmeKQCp2m=
+U6g4D0sOKTcVa5ygWa9hb0kROMNpu5MDmbpimdn4Z7GdOHWwhg7IlWu3VLc7gxnpAGxdA95OMQF=
+hNAhxCzIpXHNq_FssPtw47J1j3gmUOynApBGMsGrLPDIt5DOZr7PGa6of2qYeSNYwcbq7RwMqRc=
+9wye6c7HSoWL9fFfl8c4pPfGzEF8Bk1SMMHPBmD-ZHdHtKQhQpinEz7tb5L8PWYqkiYvR0_oePC=
+I8ULa5keBpIfrSdPjHiqIeki_DKmZz7Xqd45cMuRZNzLPdPKB6A>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif width=3D1 he=
+ight=3D4 style=3D"display: block;">
+</a>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop bgcolor=3D#4259FF style=3D"font-family: Goo=
+gle Sans, Google Sans Text, Roboto, Helvetica Neue, Helvetica, Arial, sans-=
+serif; font-size: 16px; line-height: 24px; color: #ffffff; font-weight: 500=
+; border-radius: 100px; letter-spacing: 0.1px;">
+<a class=3Dout_border2 href=3Dhttps://c.gle/ADMV5J97pJTrl8udQdPRqQZZYuYVwkw=
+CouhAHilk2ZJ9fba92BHpqZ_Sm7TfKITofrIg-kt-bU2BlZKDjOZ7LwGum76HbWMy9LXhA7Ov93=
+QASpxYBE6BgZmeKQCp2mU6g4D0sOKTcVa5ygWa9hb0kROMNpu5MDmbpimdn4Z7GdOHWwhg7IlWu=
+3VLc7gxnpAGxdA95OMQFhNAhxCzIpXHNq_FssPtw47J1j3gmUOynApBGMsGrLPDIt5DOZr7PGa6=
+of2qYeSNYwcbq7RwMqRc9wye6c7HSoWL9fFfl8c4pPfGzEF8Bk1SMMHPBmD-ZHdHtKQhQpinEz7=
+tb5L8PWYqkiYvR0_oePCI8ULa5keBpIfrSdPjHiqIeki_DKmZz7Xqd45cMuRZNzLPdPKB6A tar=
+get=3D_blank style=3D"text-decoration: none; background-color: #4259FF; pad=
+ding: 8px 18px;border-radius: 100px;color: #ffffff;display: block;">Explore=
+ Gemini
+</a>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<a href=3Dhttps://c.gle/ADMV5J97pJTrl8udQdPRqQZZYuYVwkwCouhAHilk2ZJ9fba92BH=
+pqZ_Sm7TfKITofrIg-kt-bU2BlZKDjOZ7LwGum76HbWMy9LXhA7Ov93QASpxYBE6BgZmeKQCp2m=
+U6g4D0sOKTcVa5ygWa9hb0kROMNpu5MDmbpimdn4Z7GdOHWwhg7IlWu3VLc7gxnpAGxdA95OMQF=
+hNAhxCzIpXHNq_FssPtw47J1j3gmUOynApBGMsGrLPDIt5DOZr7PGa6of2qYeSNYwcbq7RwMqRc=
+9wye6c7HSoWL9fFfl8c4pPfGzEF8Bk1SMMHPBmD-ZHdHtKQhQpinEz7tb5L8PWYqkiYvR0_oePC=
+I8ULa5keBpIfrSdPjHiqIeki_DKmZz7Xqd45cMuRZNzLPdPKB6A>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif width=3D1 he=
+ight=3D4 style=3D"display: block;">
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue width=3D20 class=3Ddbloc=
+k>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif width=3D1 he=
+ight=3D1 style=3D"display: block;" class=3Dht12>
+</td>
+<td align=3Dcenter valign=3Dtop class=3Ddblock>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<a href=3Dhttps://c.gle/ADMV5J_Z0m7sXo5XMWlf2MvxZbPFPYgPL-yj10bJ71s2IxtaY_y=
+zmnUAR5gSo16Bjs0hadMv0fwxaExHrjCX6DHFTa2-qkXp4Gk3a5eosP3JnXp_gZzVcatU5JjXMu=
+Uitck-AUOmoVQBnWvnZ16w-9rKzu4KsSpOkQsyy4YcHtyEEI0RZo0qO0yQuNRkIgr0DxCqjnI7t=
+QSAc7vykHco4tWnXr3kjxqPofmiSFWzsS7o3I5y9Ep0e-4YifFtfjvHvePWAE3lkth_S9zMvm7J=
+lFcnKrGIlzChYzUHaTkPAgDyMAopYBwazqauQmW1TNF1A8zsoj_pCveark5b-jo3TUVbD9YbpAg=
+ZudrOZJPqK_VVzxJpcKDA63Zm-0cPchxzGQx3l-Aw7b6MQZ-GcPPgamkf0DXYAHNhoAP1MYNFNF=
+pKyJIvwoYBDul9SBwyWoTa970>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif width=3D1 he=
+ight=3D4 style=3D"display: block;">
+</a>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop bgcolor=3D#4259FF style=3D"font-family: Goo=
+gle Sans, Google Sans Text, Roboto, Helvetica Neue, Helvetica, Arial, sans-=
+serif; font-size: 16px; line-height: 24px; color: #ffffff; font-weight: 500=
+; border-radius: 100px; letter-spacing: 0.1px;">
+<a class=3Dout_border2 href=3Dhttps://c.gle/ADMV5J_Z0m7sXo5XMWlf2MvxZbPFPYg=
+PL-yj10bJ71s2IxtaY_yzmnUAR5gSo16Bjs0hadMv0fwxaExHrjCX6DHFTa2-qkXp4Gk3a5eosP=
+3JnXp_gZzVcatU5JjXMuUitck-AUOmoVQBnWvnZ16w-9rKzu4KsSpOkQsyy4YcHtyEEI0RZo0qO=
+0yQuNRkIgr0DxCqjnI7tQSAc7vykHco4tWnXr3kjxqPofmiSFWzsS7o3I5y9Ep0e-4YifFtfjvH=
+vePWAE3lkth_S9zMvm7JlFcnKrGIlzChYzUHaTkPAgDyMAopYBwazqauQmW1TNF1A8zsoj_pCve=
+ark5b-jo3TUVbD9YbpAgZudrOZJPqK_VVzxJpcKDA63Zm-0cPchxzGQx3l-Aw7b6MQZ-GcPPgam=
+kf0DXYAHNhoAP1MYNFNFpKyJIvwoYBDul9SBwyWoTa970 target=3D_blank style=3D"text=
+-decoration: none; background-color: #4259FF; padding: 8px 18px;border-radi=
+us: 100px;color: #ffffff;display: block;">Learn more
+</a>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<a href=3Dhttps://c.gle/ADMV5J_Z0m7sXo5XMWlf2MvxZbPFPYgPL-yj10bJ71s2IxtaY_y=
+zmnUAR5gSo16Bjs0hadMv0fwxaExHrjCX6DHFTa2-qkXp4Gk3a5eosP3JnXp_gZzVcatU5JjXMu=
+Uitck-AUOmoVQBnWvnZ16w-9rKzu4KsSpOkQsyy4YcHtyEEI0RZo0qO0yQuNRkIgr0DxCqjnI7t=
+QSAc7vykHco4tWnXr3kjxqPofmiSFWzsS7o3I5y9Ep0e-4YifFtfjvHvePWAE3lkth_S9zMvm7J=
+lFcnKrGIlzChYzUHaTkPAgDyMAopYBwazqauQmW1TNF1A8zsoj_pCveark5b-jo3TUVbD9YbpAg=
+ZudrOZJPqK_VVzxJpcKDA63Zm-0cPchxzGQx3l-Aw7b6MQZ-GcPPgamkf0DXYAHNhoAP1MYNFNF=
+pKyJIvwoYBDul9SBwyWoTa970>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif width=3D1 he=
+ight=3D4 style=3D"display: block;">
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<!-- CTA-->
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D48 =
+width=3D1 class=3Dht44 style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> </tbody>
+</table>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<a href=3D#>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/notebooklm-chats-from-gemi=
+ni-desk-transparent-w1440px-h582px-2x.png width=3D720 height=3Dauto style=
+=3D"display: block; border-radius: 20px;" alt=3D"An interface showing a lis=
+t of recent AI chats being added as sources to a notebook." title=3D"An int=
+erface showing a list of recent AI chats being added as sources to a notebo=
+ok." class=3Ddnone>
+<!--[if !mso]><!-->
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/notebooklm-chats-from-gemi=
+ni-mob-transparent-w720px-h430px-2x.png width=3D360 height=3Dauto style=3D"=
+display: none; border-radius: 20px;" alt=3D"An interface showing a list of =
+recent AI chats being added as sources to a notebook." title=3D"An interfac=
+e showing a list of recent AI chats being added as sources to a notebook." =
+class=3Ddblock>
+<!--<![endif]-->
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D40 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 width=
+=3D624 class=3Dwd270>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 12px; line-height: 20px=
+; font-weight: 400; color: #FFFFFF; font-family: Roboto, Helvetica Neue, He=
+lvetica, Arial, sans-serif;">
+=C2=B9 Does not include shared or featured notebooks. See <a href=3Dhttps:/=
+/c.gle/ADMV5J-sGyn1tevXuzs2819PGqEpT7ac4DGx8FWAQGh2H5CouHLwaew01BdtD60zRe93=
+nrOAPjEqSy176yr8aiOwop5qlkwKwvyE_yUn3J_H6V0tuJNfZW6qCpSArODCSnYLg4QIRf1UdGl=
+lBJ9D9LTbkEQYe7qDtUR-wmiz0W7r0NO37co3FLQCm6jeJdc-u7omWWUGLaukqben4Qqy2onBS3=
+LwtboPMLRbmzSn2tkkDGEATjkOJM9_RyQzHP_8gB3f target=3D_blank style=3D"color: =
+#FFFFFF; text-decoration: underline;">help center</a> for availability.
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D48 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> </tbody>
+</table>
+</td>
+</tr>
+<!-- GEMINI module-->
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D48 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <!-- Social links module-->
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop width=3D48>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<a href=3Dhttps://c.gle/ADMV5J9E8Cps_oQruSCjwgKMfeOodiogliL-qbfkrI_VZRyWYSj=
+pjF0B5kvkf2C6SB1p7N5CcSVuRYaIquGMk-k1NG6f_PmZp4Sj4YhGZe6rVA4gts75f4Go1Gktix=
+pTqdK14nn0PI-33P12-u7gnvLw48ssYJtK79M6L2_MUIijMWLOpJezRU-h2Bx6wbnatfSGYPhqV=
+WYbR4qGvw51zZqs9zElH9Rs1_wR6qAitnNjQBOT1i1KvyGqJAUVaeeGTieJcuCksj5_VYl3FDwE=
+WBexerTIqphmkIMKJdZTvqOrGCiXYI9mufkWsLSo9KlqOP0go2pExL-CdnDR97PEjsH- target=
+=3D_blank>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/merchant-center-community-=
+x-icon-transparent-w96px-h96px-2x.png width=3D48 height=3Dauto style=3D"dis=
+play: block;">
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue width=3D12>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif width=3D1 he=
+ight=3D1 style=3D"display: block;">
+</td>
+<td align=3Dcenter valign=3Dtop width=3D48>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<a href=3Dhttps://c.gle/ADMV5J9mdVhyBKaLr93UMA74W5K7rC1QfJx75nND_LQw1RgTKTI=
+UX8DhNUNbagmX6P4AAwSjAua3xq-nPBCGWVS8Uca3tTm3-uRMseYoYDGLVlAdXHBgC7_4sNPSQO=
+bq0hkFvU9FiwdNemAfgGVGNTwsepe- target=3D_blank>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/merchant-center-community-=
+discord-icon-transparent-w96px-h96px-2x.png width=3D48 height=3Dauto style=
+=3D"display: block;">
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue width=3D12>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif width=3D1 he=
+ight=3D1 style=3D"display: block;">
+</td>
+<td align=3Dcenter valign=3Dtop width=3D48>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<a href=3Dhttps://c.gle/ADMV5J88SBUUzCeKdPcrph-KWui17Fjy6d9ExXnJ6mhRuRWlRzC=
+63n5pKQo9Uvm7F1v3YcWEMGcEjZ9KMpC5rRUiAkw182kGzIKDnaZmtCWZC5XE9Q4Yue28_ene2n=
+D-rytRVlLp57gngy47iz1uZrd5jA target=3D_blank>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/merchant-center-community-=
+reddit-icon-transparent-w96px-h96px-2x.png width=3D48 height=3Dauto style=
+=3D"display: block;">
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<!-- Social links module-->
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D40 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <!-- Body End-->
+<!-- Footer module-->
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 width=
+=3D624 class=3Dwd328>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 12px; line-height: 20px=
+; font-weight: 700; color: #202124; font-family: Roboto, Helvetica Neue, He=
+lvetica, Arial, sans-serif;">
+<a target=3D_blank style=3D"color:#202124; text-decoration:none;cursor:defa=
+ult;">
+=C2=A9 2026 Google LLC 1600 Amphitheatre Parkway, Mountain View, CA 94043
+</a>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D16 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 12px; line-height: 20px=
+; font-weight: 400; color: #202124; font-family: Roboto, Helvetica Neue, He=
+lvetica, Arial, sans-serif;">
+This email was sent to <a href=3D# target=3D_blank style=3D"color:#202124; =
+text-decoration:none;">zhangdejun652@gmail.com</a> because you signed up to=
+ receive emails about NotebookLM. If you do not wish to receive these email=
+s, please <a href=3Dhttps://myaccount.google.com/communication-preferences/=
+unsubscribe/gt/ADMV5J-Lzwmdjt00RbrrXvISpE_H_q9HUKM06akgBU7qwH55N2ou1dyO_kgl=
+pSmZfW5Hzu_ywZiTT2-cMID5YowBnr5HsgsinPpnLu3XpZgBbKBWsx2sEkqI7rCs8j88cTwbtlG=
+FRk6M1-k80ZwMeXlV3KXSNeIxDYpFO6Gmt8xFdzQZgKDXpHj4VJEydCw2yqxkYig649K1-QVUc5=
+AAbSOKjew7KmrlVJwfx7nie1KrblQBTCDXT5QL?utm_source=3Dgm&amp;utm_medium=3Dema=
+il&amp;auto=3Dtrue target=3D_blank style=3D"color:#202124; text-decoration:=
+underline;">unsubscribe</a><span aria-hidden=3Dtrue>.</span>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D20 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> <tr>
+<td align=3Dcenter valign=3Dtop>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 12px; line-height: 20px=
+; font-weight: 400; color: #202124; font-family: Roboto, Helvetica Neue, He=
+lvetica, Arial, sans-serif;">
+<a href=3Dhttps://myaccount.google.com/communication-preferences/manage/gt/=
+ADMV5J9XqsKl7IAleA30BHjhNA4XdMiPWJdJFHsRPtv3szG1nCsM76aVeT-RiXNOYTseGnWll1F=
+BWcN918gZyF9z_jo8PjaU1dBd4YQsdlqQM2p6oE-ANJKTgs4KSA8O7GEzswJ2MJYxsKvvjxIr99=
+IJezqaRcmQXxdOydieSDW9Ed37Zf_raQWQGs5kTZwaiC83rIUYu02vVpPZTmIS_ZExHkQ?utm_s=
+ource=3Dgm&amp;utm_medium=3Demail target=3D_blank style=3D"color:#202124; t=
+ext-decoration:underline;">Manage Preferences</a>
+</td>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue width=3D12>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif width=3D1 he=
+ight=3D1 style=3D"display: block;">
+</td>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 12px; line-height: 20px=
+; font-weight: 400; color: #202124; font-family: Roboto, Helvetica Neue, He=
+lvetica, Arial, sans-serif;" aria-hidden=3Dtrue>
+|
+</td>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue width=3D12>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif width=3D1 he=
+ight=3D1 style=3D"display: block;">
+</td>
+<td align=3Dcenter valign=3Dtop style=3D"font-size: 12px; line-height: 20px=
+; font-weight: 400; color: #202124; font-family: Roboto, Helvetica Neue, He=
+lvetica, Arial, sans-serif;">
+<a href=3Dhttps://c.gle/ADMV5J9V_TsYakS2J9rhagGc54ETwRO8H3wX1-EIJO48_l6GLYA=
+BzcfWMikbvE1iZTn_WJ1MtQkfa2bWjyzkz6cklCr1zXXSg9fWr-cfOebbh4Pq0wtwn8MZYve87K=
+2pm0kemda5yjBa_-yysG60NBQpXMH-iDsZ6V8uCg target=3D_blank style=3D"text-deco=
+ration: underline; color: #202124; display: block;">
+Privacy Policy
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<tr>
+<td align=3Dcenter valign=3Dtop aria-hidden=3Dtrue>
+<table role=3Dpresentation cellpadding=3D0 cellspacing=3D0 border=3D0 align=
+=3Dcenter>
+<tbody>
+<tr>
+<td align=3Dcenter valign=3Dtop>
+<img src=3Dhttps://www.gstatic.com/gumdrop/files/spacer-11.gif height=3D40 =
+width=3D1 class=3D"" style=3Ddisplay:block;>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr> </tbody>
+</table>
+</td>
+</tr>
+<!-- Footer module-->
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<img alt=3D"" height=3D1 width=3D3 src=3Dhttps://notifications.google.com/g=
+/img/ADMV5J-YTzl9dVX1LZ6IwJQhOA22Wb8MbXrf_fLt_W_7zubwqWq3opSjVVmYlJNOihkWev=
+ThmdlKiDHyBK59YI_oF8b6l0CzF_mQNHDuMl_4xP63bIjIuWjKltjH5vBsYxNQdABhcg.gif></=
+body>
+</html>
+--000000000000b1f83f0650165cae--
