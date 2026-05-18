@@ -459,11 +459,14 @@ def author_edit(aid):
 @app.route("/authors/<int:aid>/delete", methods=["POST"])
 def author_delete(aid):
     conn = get_conn()
-    conn.execute("UPDATE authors SET name=name || '(已删除)' WHERE id=?", (aid,))
+    # 解除稿件中对作者的引用
+    conn.execute("UPDATE submissions SET author1_id=NULL WHERE author1_id=?", (aid,))
+    conn.execute("UPDATE submissions SET author2_id=NULL WHERE author2_id=?", (aid,))
+    conn.execute("DELETE FROM authors WHERE id=?", (aid,))
     log_activity(conn, "author", aid, "删除作者", "")
     conn.commit()
     conn.close()
-    flash("作者已移除", "success")
+    flash("作者已删除", "success")
     return redirect(url_for("authors_list"))
 
 # ── 编辑管理 ────────────────────────────────────────
@@ -540,6 +543,23 @@ def editor_edit(eid):
     log_activity(conn, "editor", eid, "编辑编辑", f"姓名: {name}")
     conn.close()
     flash(f"编辑 {name} 已更新", "success")
+    return redirect(url_for("editors_list"))
+
+@app.route("/editors/<int:eid>/delete", methods=["POST"])
+def editor_delete(eid):
+    conn = get_conn()
+    editor = conn.execute("SELECT name FROM editors WHERE id=?", (eid,)).fetchone()
+    if not editor:
+        conn.close()
+        flash("编辑不存在", "danger")
+        return redirect(url_for("editors_list"))
+    # 删除该编辑的派稿记录
+    conn.execute("DELETE FROM assignments WHERE editor_id=?", (eid,))
+    conn.execute("DELETE FROM editors WHERE id=?", (eid,))
+    log_activity(conn, "editor", eid, "删除编辑", f"姓名: {editor['name']}")
+    conn.commit()
+    conn.close()
+    flash(f"编辑 {editor['name']} 已删除", "success")
     return redirect(url_for("editors_list"))
 
 # ── 启动 ────────────────────────────────────────────

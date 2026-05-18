@@ -55,6 +55,9 @@
                                         <i class="bi {% if e.active %}bi-pause-circle{% else %}bi-play-circle{% endif %}"></i>
                                     </button>
                                 </form>
+                                <form method="POST" action="{{ url_for('editor_delete', eid=e.id) }}" style="display:inline" onsubmit="return confirm('确定删除编辑 {{ e.name }}？该编辑的所有派稿记录也将删除。')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></button>
+                                </form>
                             </div>
                         </td>
                     </tr>

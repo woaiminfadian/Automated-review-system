@@ -117,7 +117,12 @@
                         </td>
                         <td><span class="badge status-{{ s.status }} badge-status">{{ s.status }}</span></td>
                         <td>
-                            <a href="{{ url_for('submission_detail', sid=s.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                            <div class="d-flex gap-1">
+                                <a href="{{ url_for('submission_detail', sid=s.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                                <form method="POST" action="{{ url_for('submission_delete', sid=s.id) }}" style="display:inline" onsubmit="return confirm('确定删除该稿件？相关的派稿记录也将一并删除。')" onclick="event.stopPropagation()">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
