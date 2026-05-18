@@ -46,9 +46,18 @@
                         <td class="text-muted">{{ a.phone or '-' }}</td>
                         <td class="text-muted">{{ a.department or '-' }}</td>
                         <td>
-                            <form method="POST" action="{{ url_for('author_delete', aid=a.id) }}" onsubmit="return confirm('确定删除该作者？')">
-                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></button>
-                            </form>
+                            <div class="d-flex gap-1">
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editAuthorModal"
+                                    data-id="{{ a.id }}" data-name="{{ a.name }}" data-email="{{ a.email or '' }}"
+                                    data-phone="{{ a.phone or '' }}" data-affiliation="{{ a.affiliation or '' }}"
+                                    data-department="{{ a.department or '' }}" data-grade="{{ a.grade or '' }}"
+                                    data-address="{{ a.address or '' }}">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="POST" action="{{ url_for('author_delete', aid=a.id) }}" onsubmit="return confirm('确定删除该作者？')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -92,4 +101,53 @@
         </div>
     </div>
 </div>
+
+<!-- 编辑作者模态框 -->
+<div class="modal fade" id="editAuthorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑作者</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-6"><input type="text" name="name" class="form-control" placeholder="姓名 *" required></div>
+                        <div class="col-6"><input type="text" name="email" class="form-control" placeholder="邮箱"></div>
+                        <div class="col-6"><input type="text" name="phone" class="form-control" placeholder="电话"></div>
+                        <div class="col-6"><input type="text" name="affiliation" class="form-control" placeholder="学校/单位"></div>
+                        <div class="col-6"><input type="text" name="department" class="form-control" placeholder="院系"></div>
+                        <div class="col-6"><input type="text" name="grade" class="form-control" placeholder="身份(硕士/博士/教师)"></div>
+                        <div class="col-12"><input type="text" name="address" class="form-control" placeholder="通讯地址"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var editModal = document.getElementById('editAuthorModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var btn = event.relatedTarget;
+        var form = this.querySelector('form');
+        form.action = '/authors/' + btn.getAttribute('data-id') + '/edit';
+        form.querySelector('[name="name"]').value = btn.getAttribute('data-name');
+        form.querySelector('[name="email"]').value = btn.getAttribute('data-email');
+        form.querySelector('[name="phone"]').value = btn.getAttribute('data-phone');
+        form.querySelector('[name="affiliation"]').value = btn.getAttribute('data-affiliation');
+        form.querySelector('[name="department"]').value = btn.getAttribute('data-department');
+        form.querySelector('[name="grade"]').value = btn.getAttribute('data-grade');
+        form.querySelector('[name="address"]').value = btn.getAttribute('data-address');
+    });
+});
+</script>
 {% endblock %}

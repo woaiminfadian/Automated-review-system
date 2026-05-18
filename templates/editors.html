@@ -43,12 +43,19 @@
                             {% endif %}
                         </td>
                         <td>
-                            <form method="POST" action="{{ url_for('editor_toggle', eid=e.id) }}" style="display:inline">
-                                <button type="submit" class="btn btn-sm {% if e.active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
-                                        title="{% if e.active %}停用{% else %}启用{% endif %}">
-                                    <i class="bi {% if e.active %}bi-pause-circle{% else %}bi-play-circle{% endif %}"></i>
+                            <div class="d-flex gap-1">
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editEditorModal"
+                                    data-id="{{ e.id }}" data-name="{{ e.name }}" data-email="{{ e.email or '' }}"
+                                    data-subjects="{{ e.subjects_list|join(', ') }}">
+                                    <i class="bi bi-pencil"></i>
                                 </button>
-                            </form>
+                                <form method="POST" action="{{ url_for('editor_toggle', eid=e.id) }}" style="display:inline">
+                                    <button type="submit" class="btn btn-sm {% if e.active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                                            title="{% if e.active %}停用{% else %}启用{% endif %}">
+                                        <i class="bi {% if e.active %}bi-pause-circle{% else %}bi-play-circle{% endif %}"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -87,4 +94,47 @@
         </div>
     </div>
 </div>
+
+<!-- 编辑编辑模态框 -->
+<div class="modal fade" id="editEditorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑信息</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-6"><input type="text" name="name" class="form-control" placeholder="姓名 *" required></div>
+                        <div class="col-6"><input type="text" name="email" class="form-control" placeholder="邮箱"></div>
+                        <div class="col-12">
+                            <input type="text" name="subjects" class="form-control" placeholder="负责领域(逗号分隔,如: 民法,商法)">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var editModal = document.getElementById('editEditorModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+        var btn = event.relatedTarget;
+        var form = this.querySelector('form');
+        form.action = '/editors/' + btn.getAttribute('data-id') + '/edit';
+        form.querySelector('[name="name"]').value = btn.getAttribute('data-name');
+        form.querySelector('[name="email"]').value = btn.getAttribute('data-email');
+        form.querySelector('[name="subjects"]').value = btn.getAttribute('data-subjects');
+    });
+});
+</script>
 {% endblock %}

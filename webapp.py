@@ -431,6 +431,31 @@ def author_add():
     flash(f"作者 {name} 已录入", "success")
     return redirect(url_for("authors_list"))
 
+@app.route("/authors/<int:aid>/edit", methods=["POST"])
+def author_edit(aid):
+    conn = get_conn()
+    author = conn.execute("SELECT * FROM authors WHERE id=?", (aid,)).fetchone()
+    if not author:
+        conn.close()
+        flash("作者不存在", "danger")
+        return redirect(url_for("authors_list"))
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("请填写姓名", "danger")
+        conn.close()
+        return redirect(url_for("authors_list"))
+    conn.execute(
+        "UPDATE authors SET name=?, email=?, phone=?, affiliation=?, department=?, grade=?, address=? WHERE id=?",
+        (name, request.form.get("email", "").strip(), request.form.get("phone", "").strip(),
+         request.form.get("affiliation", "").strip(), request.form.get("department", "").strip(),
+         request.form.get("grade", "").strip(), request.form.get("address", "").strip(), aid),
+    )
+    conn.commit()
+    log_activity(conn, "author", aid, "编辑作者", f"姓名: {name}")
+    conn.close()
+    flash(f"作者 {name} 已更新", "success")
+    return redirect(url_for("authors_list"))
+
 @app.route("/authors/<int:aid>/delete", methods=["POST"])
 def author_delete(aid):
     conn = get_conn()
@@ -491,6 +516,30 @@ def editor_toggle(eid):
         conn.commit()
         log_activity(conn, "editor", eid, "切换状态", f"active={new_val}")
     conn.close()
+    return redirect(url_for("editors_list"))
+
+@app.route("/editors/<int:eid>/edit", methods=["POST"])
+def editor_edit(eid):
+    conn = get_conn()
+    editor = conn.execute("SELECT * FROM editors WHERE id=?", (eid,)).fetchone()
+    if not editor:
+        conn.close()
+        flash("编辑不存在", "danger")
+        return redirect(url_for("editors_list"))
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("请填写姓名", "danger")
+        conn.close()
+        return redirect(url_for("editors_list"))
+    email = request.form.get("email", "").strip()
+    subjects_raw = request.form.get("subjects", "").strip()
+    subjects_json = json.dumps([s.strip() for s in subjects_raw.split(",") if s.strip()], ensure_ascii=False)
+    conn.execute("UPDATE editors SET name=?, email=?, subjects=? WHERE id=?",
+                 (name, email, subjects_json, eid))
+    conn.commit()
+    log_activity(conn, "editor", eid, "编辑编辑", f"姓名: {name}")
+    conn.close()
+    flash(f"编辑 {name} 已更新", "success")
     return redirect(url_for("editors_list"))
 
 # ── 启动 ────────────────────────────────────────────
