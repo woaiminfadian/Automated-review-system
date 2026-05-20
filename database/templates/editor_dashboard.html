@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}我的审稿{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4>我的审稿</h4>
+    <p class="text-muted">欢迎, {{ current_user.name }}</p>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="stat-card stat-blue">
+            <div class="number">{{ stats.total }}</div>
+            <div class="label">全部派稿</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-orange">
+            <div class="number">{{ stats.pending }}</div>
+            <div class="label">待审</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-purple">
+            <div class="number">{{ stats.reviewing }}</div>
+            <div class="label">审稿中</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-green">
+            <div class="number">{{ stats.done }}</div>
+            <div class="label">已完成</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">我的审稿任务</div>
+    <div class="card-body p-0">
+        {% if assigns %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>轮次</th><th>稿件标题</th><th>学科</th><th>作者</th>
+                        <th>派稿日期</th><th>状态</th><th>总分</th><th>结果</th><th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in assigns %}
+                    <tr class="tr-{{ a.status }}">
+                        <td><span class="badge bg-light text-dark">{{ a.round }}</span></td>
+                        <td><a href="{{ url_for('submission_detail', sid=a.sid) }}" class="text-decoration-none">{{ a.title[:35] }}{% if a.title|length > 35 %}…{% endif %}</a></td>
+                        <td><span class="badge bg-light text-dark">{{ a.field }}</span></td>
+                        <td>{{ a.author_name or '-' }}</td>
+                        <td class="text-muted">{{ a.assigned_date }}</td>
+                        <td><span class="badge badge-status
+                            {% if a.status == '待审' %}bg-secondary
+                            {% elif a.status == '审稿中' %}bg-warning text-dark
+                            {% elif a.status == '已返回' %}bg-info text-dark
+                            {% elif a.status in ('已通过','返修','退稿') %}bg-success
+                            {% else %}bg-secondary{% endif %}">{{ a.status }}</span></td>
+                        <td>{{ a.score_total if a.score_total else '-' }}</td>
+                        <td>{{ a.review_opinion if a.review_opinion else '-' }}</td>
+                        <td>
+                            {% if a.status in ('待审', '审稿中') %}
+                            <a href="{{ url_for('editor_review', aid=a.id) }}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-pencil"></i> 审稿
+                            </a>
+                            {% else %}
+                            <a href="{{ url_for('editor_review', aid=a.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> 查看
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state"><i class="bi bi-inbox"></i><p>暂无审稿任务</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
