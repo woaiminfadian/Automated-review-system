@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}首次设置{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">首次设置 — 创建管理员账号</div>
+            <div class="card-body">
+                <p class="text-muted">选择一位编辑作为系统管理员（主编），设置登录密码。</p>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">选择管理员账号</label>
+                        <select name="editor_id" class="form-select" required>
+                            <option value="">— 请选择 —</option>
+                            {% for e in editors %}
+                            <option value="{{ e.id }}">{{ e.name }} ({{ e.role }}){% if e.email %} - {{ e.email }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">设置密码</label>
+                        <input type="password" name="password" class="form-control" placeholder="至少 4 位" required minlength="4">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">创建管理员</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

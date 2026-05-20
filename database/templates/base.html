@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}学报管理系统{% endblock %} — 法大研究生学报</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
+            font-family: -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
+        }
+
+        /* ── 侧边栏 ── */
+        .sidebar {
+            position: fixed; top: 0; bottom: 0; left: 0; width: 220px;
+            background: linear-gradient(180deg, #0f1a2e 0%, #1a2d4a 100%);
+            z-index: 100; padding-top: 0; overflow-y: auto;
+        }
+        .sidebar .brand {
+            padding: 20px 20px 14px; color: #fff; font-size: 16px; font-weight: 700;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            background: rgba(0,0,0,.15);
+        }
+        .sidebar .brand small {
+            display: block; font-size: 11px; font-weight: 400;
+            color: #7e9ec4; margin-top: 3px;
+        }
+        .sidebar .nav-link {
+            color: #9bb3d1; padding: 11px 20px; font-size: 14px;
+            border-radius: 0; transition: all .2s;
+            border-left: 3px solid transparent;
+        }
+        .sidebar .nav-link:hover {
+            color: #fff; background: rgba(255,255,255,.06);
+            border-left-color: #4a9eff;
+        }
+        .sidebar .nav-link.active {
+            color: #fff; background: rgba(74,158,255,.15);
+            border-left: 3px solid #4a9eff;
+        }
+        .sidebar .nav-link i { margin-right: 10px; width: 18px; text-align: center; }
+
+        /* ── 主区域 ── */
+        .main { margin-left: 220px; padding: 24px 28px; min-height: 100vh; }
+
+        /* ── 页面头部 ── */
+        .page-header { margin-bottom: 20px; }
+        .page-header h4 {
+            margin: 0; font-weight: 700; color: #1a2940;
+            position: relative; display: inline-block;
+        }
+        .page-header h4::after {
+            content: ''; position: absolute; bottom: -3px; left: 0;
+            width: 32px; height: 3px; background: linear-gradient(90deg, #4a9eff, #2dd4bf);
+            border-radius: 2px;
+        }
+        .page-header .text-muted { font-size: 13px; }
+
+        /* ── 卡片 ── */
+        .card {
+            border: none; border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.06);
+            margin-bottom: 16px; background: #fff;
+            transition: box-shadow .2s;
+        }
+        .card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+        .card-header {
+            background: #fff; border-bottom: 1px solid #f0f2f5;
+            padding: 14px 20px; font-weight: 600; font-size: 14px;
+            border-radius: 12px 12px 0 0 !important; color: #1e293b;
+        }
+
+        /* ── 统计卡片 ── */
+        .stat-card {
+            padding: 20px; border-radius: 12px; color: #fff;
+            transition: transform .15s, box-shadow .2s;
+            position: relative; overflow: hidden;
+        }
+        .stat-card::after {
+            content: ''; position: absolute; top: -30%; right: -20%;
+            width: 100px; height: 100px; border-radius: 50%;
+            background: rgba(255,255,255,.08);
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+        .stat-card .number { font-size: 32px; font-weight: 700; line-height: 1.2; }
+        .stat-card .label { font-size: 13px; opacity: .87; }
+        .stat-blue   { background: linear-gradient(135deg, #1a73e8, #4a9eff); }
+        .stat-green  { background: linear-gradient(135deg, #0d9488, #34d399); }
+        .stat-orange { background: linear-gradient(135deg, #d97706, #fbbf24); }
+        .stat-purple { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
+        .stat-red    { background: linear-gradient(135deg, #dc2626, #f87171); }
+        .stat-gray   { background: linear-gradient(135deg, #475569, #94a3b8); }
+        .stat-teal   { background: linear-gradient(135deg, #0f766e, #2dd4bf); }
+        .stat-pink   { background: linear-gradient(135deg, #be185d, #f472b6); }
+        .stat-indigo { background: linear-gradient(135deg, #4338ca, #818cf8); }
+
+        /* ── 表格 ── */
+        .table th {
+            font-weight: 600; color: #475569; font-size: 12px;
+            text-transform: none; border-top: none; white-space: nowrap;
+            background: #f8fafc; padding: 10px 12px !important;
+        }
+        .table td { vertical-align: middle; font-size: 14px; padding: 10px 12px !important; }
+        .table-hover tbody tr:hover { background: #f0f7ff !important; }
+
+        /* ── 表格状态行：左侧彩色边框 ── */
+        .tr-待处理 { border-left: 3px solid #94a3b8; }
+        .tr-派稿中 { border-left: 3px solid #3b82f6; }
+        .tr-审稿中 { border-left: 3px solid #f59e0b; }
+        .tr-返修中 { border-left: 3px solid #ec4899; }
+        .tr-已录用 { border-left: 3px solid #10b981; }
+        .tr-已退稿 { border-left: 3px solid #ef4444; }
+        .tr-作者撤稿 { border-left: 3px solid #8b5cf6; }
+
+        /* ── 徽章 ── */
+        .badge-status {
+            font-size: 12px; padding: 3px 10px; border-radius: 12px; font-weight: 500;
+        }
+        .badge { font-weight: 500; }
+
+        /* ── 状态标签颜色 ── */
+        .status-待处理 { background: #e2e8f0; color: #475569; }
+        .status-派稿中 { background: #dbeafe; color: #1d4ed8; }
+        .status-审稿中 { background: #fef3c7; color: #b45309; }
+        .status-返修中 { background: #fce7f3; color: #be185d; }
+        .status-已录用 { background: #d1fae5; color: #065f46; }
+        .status-已退稿 { background: #fee2e2; color: #991b1b; }
+        .status-作者撤稿 { background: #f3e8ff; color: #6d28d9; }
+
+        /* ── 其他公共样式 ── */
+        .search-bar { max-width: 400px; }
+        .detail-label { color: #64748b; font-size: 13px; margin-bottom: 2px; }
+        .detail-value { font-size: 15px; font-weight: 500; }
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+        .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        @media (max-width: 768px) {
+            .sidebar { position: static; width: 100%; height: auto; }
+            .main { margin-left: 0; padding: 16px; }
+        }
+
+        .empty-state { text-align: center; padding: 40px 20px; color: #94a3b8; }
+        .empty-state i { font-size: 48px; margin-bottom: 12px; }
+        .flash-msg { animation: fadeIn .3s; border-radius: 8px; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .clickable-row { cursor: pointer; }
+        .clickable-row:hover { background: #f0f7ff !important; }
+        .fs-small { font-size: 12px; }
+        .fw500 { font-weight: 500; }
+        .fw600 { font-weight: 600; }
+
+        /* ── 分割线变体 ── */
+        hr.section-divider {
+            margin: 24px 0; border: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, #cbd5e1, transparent);
+        }
+
+        /* ── 彩色卡片左边框 ── */
+        .card.border-start-primary   { border-left: 4px solid #4a9eff !important; }
+        .card.border-start-success   { border-left: 4px solid #10b981 !important; }
+        .card.border-start-warning   { border-left: 4px solid #f59e0b !important; }
+        .card.border-start-danger    { border-left: 4px solid #ef4444 !important; }
+        .card.border-start-purple    { border-left: 4px solid #8b5cf6 !important; }
+        .card.border-start-teal      { border-left: 4px solid #14b8a6 !important; }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏 -->
+    {% if current_user.is_authenticated %}
+    <nav class="sidebar d-none d-md-block">
+        <div class="brand">
+            <i class="bi bi-journal-text me-1"></i>学报管理系统
+            <small>中国政法大学研究生学报</small>
+        </div>
+
+        <!-- 用户信息 -->
+        <div class="px-3 py-2" style="border-bottom:1px solid rgba(255,255,255,.06);font-size:13px">
+            <span style="color:#7e9ec4">{{ current_user.name }}</span>
+            <span class="badge bg-light text-dark ms-1" style="font-size:10px">{{ current_user.role }}</span>
+        </div>
+
+        <ul class="nav flex-column mt-1">
+            {% if current_user.is_admin %}
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                    <i class="bi bi-speedometer2"></i>系统总览
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path.startswith('/submissions') %}active{% endif %}" href="{{ url_for('submissions_list') }}">
+                    <i class="bi bi-file-text"></i>稿件管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path.startswith('/assignments') %}active{% endif %}" href="{{ url_for('assignments_list') }}">
+                    <i class="bi bi-send"></i>派稿管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path.startswith('/authors') %}active{% endif %}" href="{{ url_for('authors_list') }}">
+                    <i class="bi bi-people"></i>作者管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.path.startswith('/editors') %}active{% endif %}" href="{{ url_for('editors_list') }}">
+                    <i class="bi bi-person-badge"></i>编辑管理
+                </a>
+            </li>
+            <li class="nav-item"><hr style="border-color:rgba(255,255,255,.08);margin:4px 16px"></li>
+            {% endif %}
+            <li class="nav-item">
+                <a class="nav-link {% if request.path.startswith('/editor/') %}active{% endif %}" href="{{ url_for('editor_dashboard') }}">
+                    <i class="bi bi-journal-check"></i>我的审稿
+                </a>
+            </li>
+        </ul>
+
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:12px 20px;border-top:1px solid rgba(255,255,255,.06)">
+            <a href="{{ url_for('logout') }}" class="nav-link" style="padding:6px 0;color:#9bb3d1;font-size:13px">
+                <i class="bi bi-box-arrow-right"></i>退出登录
+            </a>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- 移动端导航 -->
+    {% if current_user.is_authenticated %}
+    <nav class="navbar navbar-dark bg-dark d-md-none px-3">
+        <span class="navbar-brand mb-0 h6">
+            <i class="bi bi-journal-text me-1"></i>学报
+            <small style="font-size:11px;color:#7e9ec4">{{ current_user.name }}</small>
+        </span>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mobileNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mobileNav">
+            <ul class="navbar-nav">
+                {% if current_user.is_admin %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">系统总览</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('submissions_list') }}">稿件管理</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('assignments_list') }}">派稿管理</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('authors_list') }}">作者管理</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('editors_list') }}">编辑管理</a></li>
+                <li class="nav-item"><hr style="border-color:rgba(255,255,255,.1);margin:4px 16px"></li>
+                {% endif %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('editor_dashboard') }}">我的审稿</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">退出登录</a></li>
+            </ul>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- 主内容 -->
+    <div class="main">
+        <!-- Flash 消息 -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, msg in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible flash-msg py-2 shadow-sm" role="alert">
+            <i class="bi {% if category == 'success' %}bi-check-circle{% else %}bi-exclamation-triangle{% endif %} me-1"></i>
+            {{ msg }}
+            <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 自动隐藏 flash 消息
+        document.querySelectorAll('.alert-dismissible').forEach(el => {
+            setTimeout(() => { if (el) el.remove() }, 5000);
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
