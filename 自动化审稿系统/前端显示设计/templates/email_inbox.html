@@ -1,0 +1,515 @@
+{% extends "base.html" %}
+{% block title %}邮件收稿{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4>邮件收稿处理</h4>
+    <p class="text-muted">从投稿邮箱抓取新邮件，辅助录入稿件</p>
+</div>
+
+<!-- 统计卡片 -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-orange">
+            <div class="number" id="pendingCount">{{ pending_count }}</div>
+            <div class="label">待录入</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-green">
+            <div class="number">{{ imported_today }}</div>
+            <div class="label">今日已录入</div>
+        </div>
+    </div>
+</div>
+
+<!-- 操作栏 -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <button class="btn btn-info text-white" onclick="fetchNewEmails()" id="btnFetch">
+            <i class="bi bi-cloud-download"></i> 检测新邮件
+        </button>
+        <span id="fetchBadge" class="badge rounded-pill bg-danger ms-2 d-none" style="font-size:11px"></span>
+    </div>
+    <div>
+        <select class="form-select form-select-sm" style="width:auto;display:inline" onchange="location.search='status='+this.value">
+            <option value="">全部状态</option>
+            <option value="待录入" {% if status_f == '待录入' %}selected{% endif %}>待录入</option>
+            <option value="已录入" {% if status_f == '已录入' %}selected{% endif %}>已录入</option>
+            <option value="已忽略" {% if status_f == '已忽略' %}selected{% endif %}>已忽略</option>
+        </select>
+    </div>
+</div>
+
+<!-- 暂存邮件列表 -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-envelope-open me-1"></i>邮件暂存列表</span>
+        <small class="text-muted">共 {{ staging_list|length }} 条</small>
+    </div>
+    <div class="card-body p-0">
+        {% if staging_list %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:50px">#</th>
+                        <th>标题</th>
+                        <th style="width:90px">学科</th>
+                        <th style="width:80px">发件人</th>
+                        <th style="width:90px">日期</th>
+                        <th style="width:70px">状态</th>
+                        <th style="width:160px">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in staging_list %}
+                    <tr id="email-row-{{ s.id }}" class="{% if s.needs_review %}table-warning{% endif %}">
+                        <td class="text-muted">{{ s.id }}</td>
+                        <td>
+                            <span class="fw500">{{ s.title or '(未识别标题)' }}</span>
+                            {% if s.needs_review %}
+                            <span class="badge bg-warning text-dark ms-1" style="font-size:10px">需确认</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-light text-dark">{{ s.field or '待确认' }}</span></td>
+                        <td class="text-muted">{{ s.sender_name or s.sender or '-' }}</td>
+                        <td class="text-muted">{{ s.sent_at or '-' }}</td>
+                        <td>
+                            {% if s.status == '待录入' %}
+                            <span class="badge bg-warning text-dark">待录入</span>
+                            {% elif s.status == '已录入' %}
+                            <span class="badge bg-success">已录入</span>
+                            {% else %}
+                            <span class="badge bg-secondary">已忽略</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                {% if s.status == '待录入' %}
+                                <button class="btn btn-outline-primary btn-sm" onclick="openEditModal({{ s.id }})" title="编辑">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-success btn-sm" onclick="importStaging({{ s.id }})" title="录入">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="dismissStaging({{ s.id }})" title="忽略">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                                {% else %}
+                                <small class="text-muted">—</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-4">
+            <i class="bi bi-envelope"></i>
+            <p>暂无邮件暂存记录</p>
+            <button class="btn btn-info text-white" onclick="fetchNewEmails()">
+                <i class="bi bi-cloud-download"></i> 检测新邮件
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 编辑/录入模态框 -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-envelope-paper me-1"></i>处理投稿邮件</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="editModalBody">
+                <!-- 由 JS 动态填充 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-outline-danger" onclick="dismissCurrent()">
+                    <i class="bi bi-trash"></i> 忽略此邮件
+                </button>
+                <button type="button" class="btn btn-success" onclick="importCurrent()">
+                    <i class="bi bi-check-lg"></i> 录入稿件
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 抓取进度模态框 -->
+<div class="modal fade" id="fetchModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-cloud-download me-1"></i>检测新邮件</h5>
+            </div>
+            <div class="modal-body text-center py-5" id="fetchModalBody">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <p class="text-muted mb-0">正在连接邮箱服务器，下载新邮件...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentStagingId = null;
+let stagingDataMap = {};
+
+// ── 抓取新邮件 ──
+async function fetchNewEmails() {
+    const fetchModal = new bootstrap.Modal('#fetchModal');
+    fetchModal.show();
+    document.getElementById('fetchModalBody').innerHTML = `
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p class="text-muted mb-0">正在连接邮箱服务器，下载新邮件...</p>
+    `;
+
+    try {
+        const resp = await fetch('/api/email/fetch', { method: 'POST' });
+        const data = await resp.json();
+
+        if (data.error) {
+            document.getElementById('fetchModalBody').innerHTML = `
+                <i class="bi bi-exclamation-triangle text-danger" style="font-size:36px"></i>
+                <p class="text-danger mt-2">${data.error}</p>
+            `;
+            setTimeout(() => fetchModal.hide(), 3000);
+            return;
+        }
+
+        const { summary, staged } = data;
+        let html = '';
+        if (staged.length === 0) {
+            html = `
+                <i class="bi bi-check-circle text-success" style="font-size:48px"></i>
+                <p class="mt-2 mb-0">没有新投稿邮件</p>
+                <small class="text-muted">已过滤 ${summary.skipped_non_submission} 封非投稿邮件</small>
+            `;
+        } else {
+            html = `
+                <i class="bi bi-envelope-check text-info" style="font-size:48px"></i>
+                <p class="mt-2 mb-0 fw-bold">发现 ${summary.new} 封新投稿邮件</p>
+                <small class="text-muted">已跳过 ${summary.skipped_non_submission} 封非投稿邮件</small>
+            `;
+            if (summary.already_staged > 0) {
+                html += `<br><small class="text-muted">已跳过 ${summary.already_staged} 封已暂存的邮件</small>`;
+            }
+        }
+
+        document.getElementById('fetchModalBody').innerHTML = html;
+        setTimeout(() => {
+            fetchModal.hide();
+            location.reload();
+        }, staged.length === 0 ? 2000 : 1500);
+
+    } catch (e) {
+        document.getElementById('fetchModalBody').innerHTML = `
+            <i class="bi bi-exclamation-triangle text-danger" style="font-size:36px"></i>
+            <p class="text-danger mt-2">网络错误: ${e.message}</p>
+        `;
+        setTimeout(() => fetchModal.hide(), 3000);
+    }
+}
+
+
+// ── 打开编辑模态框 ──
+function openEditModal(stagingId) {
+    const data = stagingDataMap[stagingId];
+    if (data) {
+        openEditWithData(data);
+    } else {
+        alert('无法加载邮件数据，请刷新页面重试');
+    }
+}
+
+// ── 从页面数据打开编辑 ──
+function openEditWithData(data) {
+    currentStagingId = data.id;
+    stagingDataMap[data.id] = data;
+    const modal = new bootstrap.Modal('#editModal');
+    const body = document.getElementById('editModalBody');
+
+    const authors = data.authors || [];
+    let authorsHtml = '';
+    authors.forEach((name, i) => {
+        authorsHtml += `
+        <div class="row g-2 mb-2 author-row">
+            <div class="col-md-2">
+                <label class="form-label fs-small">作者${i+1}姓名</label>
+                <input class="form-control form-control-sm" name="author_name" value="${escapeHtml(name)}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fs-small">邮箱</label>
+                <input class="form-control form-control-sm" name="author_email" value="">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fs-small">电话</label>
+                <input class="form-control form-control-sm" name="author_phone" value="">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fs-small">单位</label>
+                <input class="form-control form-control-sm" name="author_affiliation" value="">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fs-small">年级</label>
+                <input class="form-control form-control-sm" name="author_grade" value="">
+            </div>
+        </div>`;
+    });
+    if (!authors.length) {
+        authorsHtml = `
+        <div class="row g-2 mb-2 author-row">
+            <div class="col-md-2">
+                <label class="form-label fs-small">作者姓名</label>
+                <input class="form-control form-control-sm" name="author_name" value="${escapeHtml(data.sender_name || '')}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fs-small">邮箱</label>
+                <input class="form-control form-control-sm" name="author_email" value="${escapeHtml(data.sender || '')}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fs-small">电话</label>
+                <input class="form-control form-control-sm" name="author_phone" value="">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fs-small">单位</label>
+                <input class="form-control form-control-sm" name="author_affiliation" value="">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fs-small">年级</label>
+                <input class="form-control form-control-sm" name="author_grade" value="">
+            </div>
+        </div>`;
+    }
+
+    let attachmentsHtml = '';
+    (data.attachments || []).forEach(att => {
+        attachmentsHtml += `
+        <span class="badge bg-light text-dark border me-1 mb-1">
+            <i class="bi bi-file-earmark-text me-1"></i>${escapeHtml(att.filename)}
+            <small class="text-muted">(${att.category || 'supplement'})</small>
+        </span>`;
+    });
+    if (!attachmentsHtml) attachmentsHtml = '<span class="text-muted">无附件</span>';
+
+    body.innerHTML = `
+    <div class="row g-3">
+        <div class="col-md-8">
+            <label class="form-label fw600">论文标题</label>
+            <input class="form-control" name="title" value="${escapeHtml(data.title || '')}" id="editTitle">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fw600">学科方向</label>
+            <select class="form-select" name="field" id="editField">
+                ${['民法','商法','知识产权法','经济法','数据法','民事诉讼法','国际法','刑法','刑事诉讼法','法理学','宪法与行政法','环境法','劳动法','法律史','其他'].map(f =>
+                    `<option value="${f}" ${(data.field === f) ? 'selected' : ''}>${f}</option>`
+                ).join('')}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fw600">来稿日期</label>
+            <input class="form-control" name="received_date" value="${escapeHtml(data.sent_at || '')}" id="editDate">
+        </div>
+    </div>
+    <hr>
+    <div class="fw600 mb-2">作者信息</div>
+    <div id="authorsContainer">${authorsHtml}</div>
+    <button class="btn btn-outline-secondary btn-sm mt-1" onclick="addAuthorRow()">
+        <i class="bi bi-plus"></i> 添加作者
+    </button>
+    <hr>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label fw600">联系方式</label>
+            <textarea class="form-control form-control-sm" rows="3" id="editContact">${escapeHtml(data.contact_info || '')}</textarea>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw600">附件列表</label>
+            <div class="border rounded p-2" style="min-height:60px;background:#f8fafc">
+                ${attachmentsHtml}
+            </div>
+            <label class="form-label fw600 mt-2">邮件正文预览</label>
+            <textarea class="form-control form-control-sm" rows="4" readonly style="font-size:11px">${escapeHtml((data.body_text || '').substring(0, 500))}</textarea>
+        </div>
+    </div>
+    <input type="hidden" id="editAuthorsJson" value='${JSON.stringify(data.authors || [])}'>
+    `;
+
+    modal.show();
+}
+
+// ── 录入稿件 ──
+async function importCurrent() {
+    if (!currentStagingId) return;
+
+    const title = document.getElementById('editTitle')?.value || '';
+    const field = document.getElementById('editField')?.value || '';
+    const receivedDate = document.getElementById('editDate')?.value || '';
+
+    if (!title || !field) {
+        alert('请填写标题和学科方向');
+        return;
+    }
+
+    const authors = [];
+    document.querySelectorAll('#authorsContainer .author-row').forEach(row => {
+        const name = row.querySelector('[name="author_name"]')?.value?.trim();
+        if (name) {
+            authors.push({
+                name: name,
+                email: row.querySelector('[name="author_email"]')?.value?.trim() || '',
+                phone: row.querySelector('[name="author_phone"]')?.value?.trim() || '',
+                affiliation: row.querySelector('[name="author_affiliation"]')?.value?.trim() || '',
+                grade: row.querySelector('[name="author_grade"]')?.value?.trim() || '',
+            });
+        }
+    });
+
+    const payload = { title, field, authors, received_date: receivedDate, submission_type: '正常来稿' };
+
+    try {
+        const resp = await fetch('/api/email/import/' + currentStagingId, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const result = await resp.json();
+        if (result.success) {
+            bootstrap.Modal.getInstance('#editModal').hide();
+            alert('稿件已录入！ID: ' + result.submission_id);
+            location.reload();
+        } else {
+            alert('录入失败: ' + (result.error || '未知错误'));
+        }
+    } catch(e) {
+        alert('网络错误: ' + e.message);
+    }
+}
+
+
+// ── 从列表页直接导入（使用暂存数据） ──
+async function importStaging(stagingId) {
+    const data = stagingDataMap[stagingId] || {};
+    const title = data.title || '';
+    const field = data.field || '';
+    const authors = data.authors || [];
+    
+    const preview = title ? `"${title.substring(0, 50)}"` : `#${stagingId}`;
+    if (!confirm(`确定录入稿件 ${preview}？\n\n将使用自动解析的元数据创建稿件记录。建议先点击编辑按钮核对信息。`)) return;
+
+    const payload = {
+        title: title,
+        field: field,
+        authors: authors.map(function(name) {
+            return { name: (typeof name === 'string' ? name : (name.name || '')) };
+        }),
+        received_date: data.sent_at || '',
+        submission_type: '正常来稿'
+    };
+
+    try {
+        const resp = await fetch('/api/email/import/' + stagingId, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const result = await resp.json();
+        if (result.success) {
+            alert('稿件已录入！ID: ' + result.submission_id);
+            location.reload();
+        } else {
+            alert('录入失败: ' + (result.error || '未知错误'));
+        }
+    } catch(e) {
+        alert('网络错误: ' + e.message);
+    }
+}
+// ── 添加作者行 ──
+function addAuthorRow() {
+    const container = document.getElementById('authorsContainer');
+    const idx = container.querySelectorAll('.author-row').length + 1;
+    const div = document.createElement('div');
+    div.className = 'row g-2 mb-2 author-row';
+    div.innerHTML = `
+        <div class="col-md-2">
+            <label class="form-label fs-small">作者${idx}姓名</label>
+            <input class="form-control form-control-sm" name="author_name" value="">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fs-small">邮箱</label>
+            <input class="form-control form-control-sm" name="author_email" value="">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fs-small">电话</label>
+            <input class="form-control form-control-sm" name="author_phone" value="">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fs-small">单位</label>
+            <input class="form-control form-control-sm" name="author_affiliation" value="">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fs-small">年级</label>
+            <input class="form-control form-control-sm" name="author_grade" value="">
+        </div>
+    `;
+    container.appendChild(div);
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── 页面加载：渲染暂存数据到 JS map，给每行绑定编辑 ──
+document.addEventListener('DOMContentLoaded', function() {
+    {% for s in staging_list %}
+    stagingDataMap[{{ s.id }}] = {
+        id: {{ s.id }},
+        title: {{ s.title|tojson }},
+        field: {{ s.field|tojson }},
+        sent_at: {{ s.sent_at|tojson }},
+        sender: {{ s.sender|tojson }},
+        sender_name: {{ s.sender_name|tojson }},
+        contact_info: {{ s.contact_info|tojson }},
+        body_text: {{ s.body_text|tojson }},
+        authors: {{ s.authors|tojson }},
+        attachments: {{ s.attachments|tojson }},
+        needs_review: {{ s.needs_review|tojson }},
+    };
+
+    // 绑定编辑按钮
+    const editBtn = document.querySelector('#email-row-{{ s.id }} .btn-outline-primary');
+    if (editBtn) {
+        editBtn.onclick = function(e) {
+            e.preventDefault();
+            openEditWithData(stagingDataMap[{{ s.id }}]);
+        };
+    }
+    {% endfor %}
+
+    // 更新 badge
+    updateBadge();
+});
+
+async function updateBadge() {
+    try {
+        const resp = await fetch('/email/status');
+        const data = await resp.json();
+        const badge = document.getElementById('fetchBadge');
+        const pendingEl = document.getElementById('pendingCount');
+        if (badge && data.new_count > 0) {
+            badge.textContent = data.new_count + ' 封待处理';
+            badge.classList.remove('d-none');
+        }
+        if (pendingEl) pendingEl.textContent = data.new_count;
+    } catch(e) {}
+}
+</script>
+{% endblock %}
