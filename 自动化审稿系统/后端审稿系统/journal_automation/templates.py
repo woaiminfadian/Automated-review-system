@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 import zipfile
 from email.message import EmailMessage
@@ -10,6 +11,8 @@ from xml.sax.saxutils import escape
 from .config import AppConfig
 from .models import DraftContext, SubmissionRecord
 from .utils import extract_docx_text, sanitize_filename
+
+logger = logging.getLogger(__name__)
 
 
 SECTION_MAP = {
@@ -69,8 +72,16 @@ def create_review_form(template_path: Path, output_path: Path, title: str, autho
             data = source.read(info.filename)
             if info.filename == "word/document.xml":
                 text = data.decode("utf-8")
+                missing = []
                 for old, new in replacements.items():
+                    if old not in text:
+                        missing.append(old)
                     text = text.replace(old, new, 1)
+                if missing:
+                    logger.warning(
+                        "create_review_form: %d/%d placeholder(s) not found in template %s",
+                        len(missing), len(replacements), template_path
+                    )
                 data = text.encode("utf-8")
             target.writestr(info, data)
     return output_path

@@ -13,7 +13,7 @@ DB_PATH = os.path.join(DB_DIR, "journal.db")
 UPLOAD_DIR = os.path.join(DB_DIR, "uploads")
 
 app = Flask(__name__, template_folder="../前端显示设计/templates")
-app.secret_key = os.urandom(24).hex()
+app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24).hex())
 app.config["UPLOAD_FOLDER"] = UPLOAD_DIR
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50MB max upload
 
@@ -32,6 +32,7 @@ STATUSES = ["待处理", "派稿中", "审稿中", "返修中", "已录用", "�
 ROUNDS = ["一审", "二审", "再审", "终审", "外审"]
 ASSIGN_STATUSES = ["待审", "审稿中", "已返回", "已通过", "返修", "退稿", "待确认"]
 ALLOWED_EXT = {".docx", ".doc", ".pdf"}
+DEFAULT_EDITOR_PASSWORD = os.environ.get("DEFAULT_EDITOR_PASSWORD", "123456")
 
 # ── 自动化配置 ─────────────────────────────────────
 from pathlib import Path
@@ -736,11 +737,11 @@ def editor_add():
         cur = conn.execute("INSERT INTO editors (name, email, subjects) VALUES (?,?,?)",
                           (name, email, subjects_json))
         eid = cur.lastrowid
-        h = generate_password_hash("123456")
+        h = generate_password_hash(DEFAULT_EDITOR_PASSWORD)
         conn.execute("UPDATE editors SET password_hash=?, password_default=1 WHERE id=?", (h, eid))
         conn.commit()
         log_activity(conn, "editor", eid, "添加编辑", f"姓名: {name}")
-        flash(f"编辑 {name} 已添加，默认密码: 123456", "success")
+        flash(f"编辑 {name} 已添加，默认密码: {DEFAULT_EDITOR_PASSWORD}", "success")
     except sqlite3.IntegrityError:
         flash("该编辑已存在", "danger")
     conn.close()
@@ -1052,6 +1053,9 @@ def api_email_fetch():
     ensure_upload_dir()
 
     for uid, raw in messages:
+        if uid and (max_uid is None or int(uid) > int(max_uid)):
+            max_uid = uid
+
         message = parse_message(raw)
         message_id = (message.get("Message-ID") or f"<local-{uid}>").strip()
 
@@ -1113,8 +1117,6 @@ def api_email_fetch():
         conn.commit()
 
         summary["new"] += 1
-        if uid and (max_uid is None or int(uid) > int(max_uid)):
-            max_uid = uid
 
         staged.append({
             "id": staging_id, "uid": uid, "message_id": message_id,
@@ -1334,9 +1336,13 @@ def email_staging_dismiss(staging_id):
 
 if __name__ == "__main__":
     ensure_upload_dir()
-    port = 5000
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "5000"))
     if len(sys.argv) > 1 and sys.argv[1].isdigit():
         port = int(sys.argv[1])
-    print(f"学报管理系统 v2 启动: http://0.0.0.0:{port}")
+    debug = os.environ.get("DEBUG", "false").lower() in ("true", "1", "yes")
+    if host != "127.0.0.1" and debug:
+        print("WARNING: DEBUG mode enabled on non-localhost. This is a security risk.")
+    print(f"学报管理系统 v2 启动: http://{host}:{port}")
     print("按 Ctrl+C 停止")
-    app.run(debug=True, host="0.0.0.0", port=port)
+    app.run(debug=debug, host=host, port=port)

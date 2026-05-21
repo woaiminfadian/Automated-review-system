@@ -49,8 +49,9 @@ def sync_submissions(
             raw_messages = load_messages_from_eml_dir(eml_dir)
         else:
             # 优先使用 IMAP（通过 ID 命令满足 126 安全检查），失败时回退到 POP3
+            last_uid = state.get_last_uid()
             try:
-                raw_messages = fetch_messages_from_imap(config, limit=limit)
+                raw_messages = fetch_messages_from_imap(config, after_uid=last_uid, limit=limit)
             except Exception as imap_err:
                 print(f"IMAP 连接失败: {imap_err}，尝试 POP3 回退...")
                 raw_messages = fetch_messages_from_pop3(config, limit=limit)

@@ -58,7 +58,8 @@ def create_tables(conn):
             password_hash TEXT,
             last_login    TEXT,
             notes         TEXT,
-            active        INTEGER DEFAULT 1
+            active        INTEGER DEFAULT 1,
+            password_default INTEGER DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS assignments (

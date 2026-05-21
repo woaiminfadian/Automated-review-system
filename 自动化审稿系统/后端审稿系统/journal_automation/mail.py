@@ -130,6 +130,20 @@ def load_messages_from_eml_dir(directory: Path) -> Iterable[Tuple[str, bytes]]:
     return items
 
 
+def has_attachments(message: Message) -> bool:
+    """Quick check: does the message have any attachments?
+    Only inspects MIME structure, no payload decoding or text extraction."""
+    for part in message.walk():
+        if part.is_multipart():
+            continue
+        content_disposition = (part.get("Content-Disposition") or "").lower()
+        if "attachment" in content_disposition:
+            return True
+        if part.get_filename():
+            return True
+    return False
+
+
 def is_submission_email(message: Message) -> bool:
     """判断一封邮件是否为投稿邮件（过滤系统通知、审稿回复、录用通知等非投稿邮件）。"""
     sender = message.get("From", "")
@@ -154,8 +168,7 @@ def is_submission_email(message: Message) -> bool:
         return False
 
     # 投稿应有附件（至少一篇稿件文档）
-    attachments = extract_attachments(message)
-    if not attachments:
+    if not has_attachments(message):
         return False
 
     # 跳过纯回复/转发链（含中英文冒号变体）

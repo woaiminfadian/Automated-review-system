@@ -12,7 +12,7 @@ from journal_automation.workflow import prepare_reply_package, sync_submissions,
 
 
 TOOL_ROOT = Path(__file__).resolve().parents[1]
-WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
+WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
 
 
 def build_sample_docx(path: Path, text: str) -> None:
