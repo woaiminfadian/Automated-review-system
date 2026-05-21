@@ -4,84 +4,75 @@
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h4>我的审稿</h4>
-        <p class="text-muted mb-0">欢迎, {{ current_user.name }}</p>
+        <span class="text-muted">{{ current_user.name }} — {{ stats.total }} 个任务</span>
     </div>
-    <a href="{{ url_for('editor_change_password') }}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-key"></i> 修改密码
-    </a>
+    <a href="{{ url_for('editor_change_password') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-key"></i> 修改密码</a>
 </div>
 
 {% if password_default %}
-<div class="alert alert-warning py-2 mb-3" role="alert">
-    <i class="bi bi-exclamation-triangle me-1"></i>
-    您正在使用默认密码，请及时 <a href="{{ url_for('editor_change_password') }}" class="alert-link">修改密码</a>。
+<div class="alert alert-warning py-2 mb-2" role="alert" style="font-size:13px">
+    <i class="bi bi-exclamation-triangle me-1"></i>您正在使用默认密码，请及时 <a href="{{ url_for('editor_change_password') }}" class="alert-link">修改密码</a>。
 </div>
 {% endif %}
 
-<div class="row g-3 mb-3">
-    <div class="col-md-3">
-        <div class="stat-card stat-blue">
-            <div class="number">{{ stats.total }}</div>
-            <div class="label">全部派稿</div>
-        </div>
+<!-- Compact metric strip -->
+<div class="metric-strip mb-2">
+    <div class="metric-item">
+        <div class="metric-num text-blue">{{ stats.total }}</div>
+        <div class="metric-label">全部</div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card stat-orange">
-            <div class="number">{{ stats.pending }}</div>
-            <div class="label">待审</div>
-        </div>
+    <div class="metric-item">
+        <div class="metric-num text-orange">{{ stats.pending }}</div>
+        <div class="metric-label">待审</div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card stat-purple">
-            <div class="number">{{ stats.reviewing }}</div>
-            <div class="label">审稿中</div>
-        </div>
+    <div class="metric-item">
+        <div class="metric-num text-purple">{{ stats.reviewing }}</div>
+        <div class="metric-label">审稿中</div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card stat-green">
-            <div class="number">{{ stats.done }}</div>
-            <div class="label">已完成</div>
-        </div>
+    <div class="metric-item" style="border-right:none">
+        <div class="metric-num text-green">{{ stats.done }}</div>
+        <div class="metric-label">已完成</div>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">我的审稿任务</div>
+<!-- 状态筛选 chips -->
+<div class="filter-chips mb-2">
+    <a href="?" class="chip active filter-chip" data-status="">全部</a>
+    <a href="?status=待审" class="chip filter-chip" data-status="待审">待审</a>
+    <a href="?status=审稿中" class="chip filter-chip" data-status="审稿中">审稿中</a>
+    <a href="?status=已返回" class="chip filter-chip" data-status="已返回">已返回</a>
+</div>
+
+<div class="card" style="margin-bottom:12px">
     <div class="card-body p-0">
         {% if assigns %}
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0" id="assignTable">
                 <thead>
-                    <tr>
-                        <th>轮次</th><th>稿件标题</th><th>学科</th><th>作者</th>
-                        <th>派稿日期</th><th>状态</th><th>总分</th><th>结果</th><th>操作</th>
-                    </tr>
+                    <tr><th>轮次</th><th>稿件标题</th><th>学科</th><th>作者</th><th>派稿日</th><th>状态</th><th>总分</th><th>结果</th><th style="width:90px">操作</th></tr>
                 </thead>
                 <tbody>
                     {% for a in assigns %}
-                    <tr class="tr-{{ a.status }}">
+                    <tr class="tr-{{ a.status }}" data-status="{{ a.status }}">
                         <td><span class="badge bg-light text-dark">{{ a.round }}</span></td>
-                        <td><a href="{{ url_for('editor_review', aid=a.id) }}" class="text-decoration-none">{{ a.title[:35] }}{% if a.title|length > 35 %}…{% endif %}</a></td>
+                        <td><a href="{{ url_for('editor_review', aid=a.id) }}" class="text-decoration-none fw500 text-ellipsis" style="max-width:200px" title="{{ a.title }}">{{ a.title[:40] }}{% if a.title|length > 40 %}…{% endif %}</a></td>
                         <td><span class="badge bg-light text-dark">{{ a.field }}</span></td>
-                        <td>{{ a.author_name or '-' }}</td>
-                        <td class="text-muted">{{ a.assigned_date }}</td>
+                        <td class="text-muted">{{ a.author_name or '-' }}</td>
+                        <td class="text-muted fs-small">{{ a.assigned_date }}</td>
                         <td><span class="badge badge-status
-                            {% if a.status == '待审' %}bg-secondary
-                            {% elif a.status == '审稿中' %}bg-warning text-dark
+                            {% if a.status == '待审' %}bg-secondary text-white
+                            {% elif a.status == '审稿中' %}status-审稿中
                             {% elif a.status == '已返回' %}bg-info text-dark
-                            {% elif a.status in ('已通过','返修','退稿') %}bg-success
+                            {% elif a.status in ('已通过','返修') %}status-已录用
+                            {% elif a.status == '退稿' %}status-已退稿
                             {% else %}bg-secondary{% endif %}">{{ a.status }}</span></td>
                         <td>{{ a.score_total if a.score_total else '-' }}</td>
-                        <td>{{ a.review_opinion if a.review_opinion else '-' }}</td>
+                        <td>{{ a.review_opinion or '-' }}</td>
                         <td>
                             {% if a.status in ('待审', '审稿中') %}
-                            <a href="{{ url_for('editor_review', aid=a.id) }}" class="btn btn-sm btn-primary">
-                                <i class="bi bi-pencil"></i> 审稿
-                            </a>
+                            <a href="{{ url_for('editor_review', aid=a.id) }}" class="btn btn-sm btn-primary py-0 px-2"><i class="bi bi-pencil"></i> 审稿</a>
                             {% else %}
-                            <a href="{{ url_for('editor_review', aid=a.id) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i> 查看
-                            </a>
+                            <a href="{{ url_for('editor_review', aid=a.id) }}" class="btn btn-sm btn-outline-primary py-0 px-2"><i class="bi bi-eye"></i> 查看</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -90,8 +81,26 @@
             </table>
         </div>
         {% else %}
-        <div class="empty-state"><i class="bi bi-inbox"></i><p>暂无审稿任务</p></div>
+        <div class="empty-state py-3"><i class="bi bi-inbox"></i><p>暂无审稿任务</p></div>
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Client-side status filter via chips
+document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', function(e) {
+        e.preventDefault();
+        var status = this.dataset.status;
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('#assignTable tbody tr').forEach(row => {
+            if (!status || row.dataset.status === status) row.style.display = '';
+            else row.style.display = 'none';
+        });
+    });
+});
+</script>
 {% endblock %}

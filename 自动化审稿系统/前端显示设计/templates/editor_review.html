@@ -1,24 +1,35 @@
 {% extends "base.html" %}
-{% block title %}提交审稿{% endblock %}
+{% block title %}审稿 #{{ assign.id }}{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h4>提交审稿意见</h4>
-    <a href="{{ url_for('editor_dashboard') }}" class="text-muted text-decoration-none fs-small">← 返回我的审稿</a>
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h4>审稿任务 #{{ assign.id }}</h4>
+        <a href="{{ url_for('editor_dashboard') }}" class="text-muted text-decoration-none fs-small">← 返回我的审稿</a>
+    </div>
+    {% if assign.status in ('已返回', '已通过', '返修', '退稿') and assign.score_total is not none %}
+    <span class="badge bg-success fs-small">已提交</span>
+    {% endif %}
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">稿件信息</div>
-    <div class="card-body">
-        <div class="row">
+<!-- 任务摘要 -->
+<div class="card" style="margin-bottom:12px">
+    <div class="card-body py-2">
+        <div class="row g-2">
             <div class="col-md-6">
-                <p class="mb-1"><strong>标题：</strong>{{ assign.title }}</p>
-                <p class="mb-1"><strong>学科：</strong><span class="badge bg-light text-dark">{{ assign.field }}</span></p>
-                <p class="mb-1"><strong>来稿性质：</strong>{{ assign.submission_type }}</p>
+                <span class="text-muted fs-small">标题:</span>
+                <span class="fw600">{{ assign.title }}</span>
             </div>
-            <div class="col-md-6">
-                <p class="mb-1"><strong>作者：</strong>{{ assign.author_name or '-' }}</p>
-                <p class="mb-1"><strong>单位：</strong>{{ assign.author_aff or '-' }}</p>
-                <p class="mb-1"><strong>派稿日期：</strong>{{ assign.assigned_date }}</p>
+            <div class="col-md-2">
+                <span class="text-muted fs-small">学科:</span>
+                <span class="badge bg-light text-dark">{{ assign.field }}</span>
+            </div>
+            <div class="col-md-2">
+                <span class="text-muted fs-small">作者:</span>
+                {{ assign.author_name or '-' }}
+            </div>
+            <div class="col-md-2">
+                <span class="text-muted fs-small">派稿日:</span>
+                {{ assign.assigned_date }}
             </div>
         </div>
     </div>
@@ -28,53 +39,49 @@
 <!-- 已提交的审稿结果（只读） -->
 <div class="card mb-3 border-start-success">
     <div class="card-header text-success">已提交的审稿意见</div>
-    <div class="card-body">
-        <div class="row g-3 mb-3">
-            <div class="col-md-3">
-                <div class="stat-card stat-blue" style="padding:12px 16px;min-height:auto">
-                    <div class="number" style="font-size:24px">{{ assign.score_total or '-' }}</div>
-                    <div class="label">总分</div>
-                </div>
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center mb-2">
+            <div class="col-auto">
+                <span class="fw-bold" style="font-size:20px;color:#0d9488">{{ assign.score_total or '-' }}</span>
+                <span class="text-muted fs-small">/ 100 总分</span>
             </div>
-            <div class="col-md-9">
-                <table class="table table-sm mb-0">
-                    <tr><td style="width:80px">选题</td><td>{{ assign.score_topic or '-' }}</td>
-                        <td style="width:80px">论证</td><td>{{ assign.score_argument or '-' }}</td>
-                        <td style="width:80px">创新</td><td>{{ assign.score_innovation or '-' }}</td>
-                        <td style="width:80px">规范</td><td>{{ assign.score_standard or '-' }}</td></tr>
+            <div class="col">
+                <table class="table table-sm table-borderless mb-0 fs-small">
+                    <tr>
+                        <td style="width:48px">选题</td><td style="width:40px"><strong>{{ assign.score_topic or '-' }}</strong></td>
+                        <td style="width:48px">论证</td><td style="width:40px"><strong>{{ assign.score_argument or '-' }}</strong></td>
+                        <td style="width:48px">创新</td><td style="width:40px"><strong>{{ assign.score_innovation or '-' }}</strong></td>
+                        <td style="width:48px">规范</td><td><strong>{{ assign.score_standard or '-' }}</strong></td>
+                    </tr>
                 </table>
             </div>
         </div>
-        <div class="row mb-2">
+        <div class="row mb-1">
             <div class="col-2 detail-label">审定意见</div>
             <div class="col-10">
                 <span class="badge {% if assign.review_opinion == '录用' %}bg-success
                     {% elif assign.review_opinion == '修改' %}bg-warning text-dark
                     {% elif assign.review_opinion == '退稿' %}bg-danger
-                    {% else %}bg-secondary{% endif %} fs-6">
-                    {{ assign.review_opinion or '未填写' }}
-                </span>
+                    {% else %}bg-secondary{% endif %}">{{ assign.review_opinion or '未填写' }}</span>
             </div>
         </div>
-        <div class="row mb-2">
+        <div class="row mb-1">
             <div class="col-2 detail-label">审稿意见</div>
-            <div class="col-10"><div class="p-2 bg-light rounded">{{ assign.review_comment or '无' }}</div></div>
+            <div class="col-10"><div class="p-2 bg-light rounded" style="font-size:13px">{{ assign.review_comment or '无' }}</div></div>
         </div>
-        <div class="row mb-2">
+        <div class="row mb-1">
             <div class="col-2 detail-label">提交时间</div>
-            <div class="col-10 text-muted">{{ assign.reviewed_at or '-' }}</div>
+            <div class="col-10 text-muted fs-small">{{ assign.reviewed_at or '-' }}</div>
         </div>
-        {% if assign.file_review %}
+        {% if assign.file_review or assign.file_annotated %}
         <div class="row">
             <div class="col-2 detail-label">附件</div>
-            <div class="col-10">
-                <a href="{{ url_for('download_file', filename=assign.file_review.replace('uploads/', '')) }}" class="btn btn-sm btn-outline-primary me-2">
-                    <i class="bi bi-download"></i> 审稿评分表
-                </a>
+            <div class="col-10 d-flex gap-2">
+                {% if assign.file_review %}
+                <a href="{{ url_for('download_file', filename=assign.file_review.replace('uploads/', '')) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> 评分表</a>
+                {% endif %}
                 {% if assign.file_annotated %}
-                <a href="{{ url_for('download_file', filename=assign.file_annotated.replace('uploads/', '')) }}" class="btn btn-sm btn-outline-primary">
-                    <i class="bi bi-download"></i> 批注版
-                </a>
+                <a href="{{ url_for('download_file', filename=assign.file_annotated.replace('uploads/', '')) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i> 批注版</a>
                 {% endif %}
             </div>
         </div>
@@ -84,25 +91,21 @@
 {% endif %}
 
 {% if assign.status in ('待审', '审稿中') %}
-<!-- 稿件原稿/附件下载 -->
+<!-- 稿件文件下载 -->
 {% if submission_files %}
-<div class="card mb-3 border-start-primary">
-    <div class="card-header">稿件文件</div>
-    <div class="card-body">
-        <div class="row g-2">
+<div class="card mb-2 border-start-primary">
+    <div class="card-header" style="font-size:12px">稿件文件</div>
+    <div class="card-body py-2">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
             {% for sf in submission_files %}
-            <div class="col-auto">
-                <a href="{{ url_for('download_submission_file', sid=assign.submission_id, fid=sf.id) }}" class="btn btn-sm btn-outline-primary">
-                    <i class="bi bi-download"></i> {{ sf.filename }}
-                    <span class="badge bg-light text-dark ms-1" style="font-size:10px">{{ sf.file_type }}</span>
-                </a>
-            </div>
+            <a href="{{ url_for('download_submission_file', sid=assign.submission_id, fid=sf.id) }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-download"></i> {{ sf.filename }}
+                <span class="badge bg-light text-dark ms-1" style="font-size:10px">{{ sf.file_type }}</span>
+            </a>
             {% endfor %}
-            <div class="col-auto">
-                <a href="{{ url_for('download_scoring_template') }}" class="btn btn-sm btn-outline-success">
-                    <i class="bi bi-file-earmark-text"></i> 审稿评分表模板
-                </a>
-            </div>
+            <a href="{{ url_for('download_scoring_template') }}" class="btn btn-sm btn-outline-success ms-2">
+                <i class="bi bi-file-earmark-text"></i> 评分表模板
+            </a>
         </div>
     </div>
 </div>
@@ -110,93 +113,75 @@
 
 <!-- 审稿表单 -->
 <form method="POST" enctype="multipart/form-data">
-    <div class="card mb-3">
-        <div class="card-header">评分</div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">选题评分</label>
-                    <input type="number" name="score_topic" class="form-control" step="0.1" min="0" max="30" placeholder="0-30"
-                           value="{{ assign.score_topic if assign.score_topic else '' }}">
+    <!-- 评分（紧凑横向） -->
+    <div class="card mb-2">
+        <div class="card-header" style="font-size:12px">评分</div>
+        <div class="card-body py-2">
+            <div class="row g-2">
+                <div class="col-3">
+                    <label class="form-label fs-small mb-1">选题 (0-30)</label>
+                    <input type="number" name="score_topic" class="form-control form-control-sm" step="0.1" min="0" max="30" placeholder="0-30" value="{{ assign.score_topic if assign.score_topic else '' }}">
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">论证评分</label>
-                    <input type="number" name="score_argument" class="form-control" step="0.1" min="0" max="30" placeholder="0-30"
-                           value="{{ assign.score_argument if assign.score_argument else '' }}">
+                <div class="col-3">
+                    <label class="form-label fs-small mb-1">论证 (0-30)</label>
+                    <input type="number" name="score_argument" class="form-control form-control-sm" step="0.1" min="0" max="30" placeholder="0-30" value="{{ assign.score_argument if assign.score_argument else '' }}">
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">创新评分</label>
-                    <input type="number" name="score_innovation" class="form-control" step="0.1" min="0" max="20" placeholder="0-20"
-                           value="{{ assign.score_innovation if assign.score_innovation else '' }}">
+                <div class="col-3">
+                    <label class="form-label fs-small mb-1">创新 (0-20)</label>
+                    <input type="number" name="score_innovation" class="form-control form-control-sm" step="0.1" min="0" max="20" placeholder="0-20" value="{{ assign.score_innovation if assign.score_innovation else '' }}">
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">规范评分</label>
-                    <input type="number" name="score_standard" class="form-control" step="0.1" min="0" max="20" placeholder="0-20"
-                           value="{{ assign.score_standard if assign.score_standard else '' }}">
+                <div class="col-3">
+                    <label class="form-label fs-small mb-1">规范 (0-20)</label>
+                    <input type="number" name="score_standard" class="form-control form-control-sm" step="0.1" min="0" max="20" placeholder="0-20" value="{{ assign.score_standard if assign.score_standard else '' }}">
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-bold">总分</label>
-                    <input type="number" name="score_total" class="form-control" step="0.1" min="0" max="100" placeholder="0-100"
-                           value="{{ assign.score_total if assign.score_total else '' }}">
+                <div class="col-3">
+                    <label class="form-label fs-small mb-1 fw-bold">总分</label>
+                    <input type="number" name="score_total" class="form-control form-control-sm" step="0.1" min="0" max="100" placeholder="0-100" value="{{ assign.score_total if assign.score_total else '' }}">
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card mb-3">
-        <div class="card-header">审定意见</div>
-        <div class="card-body">
-            <div class="mb-3">
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="review_opinion" value="录用" id="op_accept"
-                           {% if assign.review_opinion == '录用' %}checked{% endif %}>
-                    <label class="form-check-label" for="op_accept">录用</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="review_opinion" value="修改" id="op_revise"
-                           {% if assign.review_opinion == '修改' %}checked{% endif %}>
-                    <label class="form-check-label" for="op_revise">修改后录用/再审</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="review_opinion" value="退稿" id="op_reject"
-                           {% if assign.review_opinion == '退稿' %}checked{% endif %}>
-                    <label class="form-check-label" for="op_reject">退稿</label>
-                </div>
-            </div>
+    <!-- 审定意见 -->
+    <div class="card mb-2">
+        <div class="card-header" style="font-size:12px">审定意见</div>
+        <div class="card-body py-2">
             <div class="mb-2">
-                <label class="form-label">详细审稿意见</label>
-                <textarea name="review_comment" class="form-control" rows="6" placeholder="请撰写详细的审稿意见…">{{ assign.review_comment or '' }}</textarea>
+                <div class="btn-group btn-group-sm" role="group">
+                    <input type="radio" class="btn-check" name="review_opinion" value="录用" id="op_accept" {% if assign.review_opinion == '录用' %}checked{% endif %}>
+                    <label class="btn btn-outline-success" for="op_accept">录用</label>
+                    <input type="radio" class="btn-check" name="review_opinion" value="修改" id="op_revise" {% if assign.review_opinion == '修改' %}checked{% endif %}>
+                    <label class="btn btn-outline-warning" for="op_revise">修改后录用/再审</label>
+                    <input type="radio" class="btn-check" name="review_opinion" value="退稿" id="op_reject" {% if assign.review_opinion == '退稿' %}checked{% endif %}>
+                    <label class="btn btn-outline-danger" for="op_reject">退稿</label>
+                </div>
+            </div>
+            <textarea name="review_comment" class="form-control form-control-sm" rows="4" placeholder="请撰写详细的审稿意见…" style="font-size:13px">{{ assign.review_comment or '' }}</textarea>
+        </div>
+    </div>
+
+    <!-- 上传文件 -->
+    <div class="card mb-2">
+        <div class="card-header" style="font-size:12px">上传文件（可选）</div>
+        <div class="card-body py-2">
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <label class="form-label fs-small mb-1">审稿评分表 (.docx/.pdf)</label>
+                    <input type="file" name="file_review" class="form-control form-control-sm" accept=".docx,.doc,.pdf">
+                    {% if assign.file_review %}<small class="text-muted">现有: {{ assign.file_review }}</small>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fs-small mb-1">批注版稿件 (.docx/.pdf)</label>
+                    <input type="file" name="file_annotated" class="form-control form-control-sm" accept=".docx,.doc,.pdf">
+                    {% if assign.file_annotated %}<small class="text-muted">现有: {{ assign.file_annotated }}</small>{% endif %}
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="card mb-3">
-        <div class="card-header">上传文件（可选）</div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">审稿评分表 (.docx/.pdf)</label>
-                    <input type="file" name="file_review" class="form-control" accept=".docx,.doc,.pdf">
-                    {% if assign.file_review %}
-                    <small class="text-muted">现有文件: {{ assign.file_review }}</small>
-                    {% endif %}
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">批注版稿件 (.docx/.pdf)</label>
-                    <input type="file" name="file_annotated" class="form-control" accept=".docx,.doc,.pdf">
-                    {% if assign.file_annotated %}
-                    <small class="text-muted">现有文件: {{ assign.file_annotated }}</small>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-primary px-4">
-            <i class="bi bi-check-lg"></i> 提交审稿意见
-        </button>
-        <a href="{{ url_for('editor_dashboard') }}" class="btn btn-outline-secondary px-4">取消</a>
+    <div class="d-flex gap-2 justify-content-end">
+        <a href="{{ url_for('editor_dashboard') }}" class="btn btn-sm btn-outline-secondary">取消</a>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> 提交审稿结果</button>
     </div>
 </form>
 {% endif %}

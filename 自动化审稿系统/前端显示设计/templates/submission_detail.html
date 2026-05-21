@@ -1,147 +1,146 @@
 {% extends "base.html" %}
 {% block title %}稿件详情 #{{ sub.id }}{% endblock %}
 {% block content %}
+<!-- Action bar -->
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h4>稿件详情 #{{ sub.id }}</h4>
         <a href="{{ url_for('submissions_list') }}" class="text-muted text-decoration-none fs-small">← 返回稿件列表</a>
     </div>
-    <div class="dropdown">
-        <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="bi bi-gear"></i> 操作
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow">
-            <li><a class="dropdown-item" href="{{ url_for('submission_edit', sid=sub.id) }}"><i class="bi bi-pencil me-2"></i>编辑稿件</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li>
-                <form method="POST" action="{{ url_for('submission_delete', sid=sub.id) }}" onsubmit="return confirm('确定删除此稿件及相关派稿记录？')">
-                    <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash me-2"></i>删除稿件</button>
-                </form>
-            </li>
-        </ul>
-    </div></div>
+    <div class="action-bar">
+        <a href="{{ url_for('submission_edit', sid=sub.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i> 编辑</a>
+        <a href="{{ url_for('assignment_add') }}?sid={{ sub.id }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-send"></i> 派稿</a>
+        <form method="POST" action="{{ url_for('submission_delete', sid=sub.id) }}" style="display:inline" onsubmit="return confirm('确定删除此稿件及相关派稿记录？')">
+            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> 删除</button>
+        </form>
+    </div>
+</div>
+
+<!-- Inline status update -->
+<div class="d-flex align-items-center gap-2 mb-3 p-2 rounded" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+    <span class="fw600" style="font-size:13px">状态:</span>
+    <form method="POST" action="{{ url_for('submission_update_status', sid=sub.id) }}" class="d-flex align-items-center gap-2">
+        <select name="status" class="form-select form-select-sm" style="width:130px">
+            {% for s in statuses %}
+            <option value="{{ s }}" {% if s == sub.status %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary py-0">更新</button>
+    </form>
+    {% if submission_files %}
+    <span class="ms-3 text-muted" style="font-size:12px">| 附件: {{ submission_files|length }} 个</span>
+    {% endif %}
+</div>
 
 <div class="row g-3">
-    <!-- 稿件信息 -->
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header">稿件信息  <span class="badge status-{{ sub.status }} badge-status ms-2">{{ sub.status }}</span></div>
-            <div class="card-body">
-                <div class="row mb-2">
-                    <div class="col-4 detail-label">标题</div>
-                    <div class="col-8 detail-value">{{ sub.title }}</div>
+    <!-- 稿件信息 + 作者信息 -->
+    <div class="col-md-7">
+        <div class="card" style="margin-bottom:12px">
+            <div class="card-header">稿件信息</div>
+            <div class="card-body py-2">
+                <div class="row mb-1">
+                    <div class="col-3 detail-label">标题</div>
+                    <div class="col-9 detail-value" style="font-size:14px">{{ sub.title }}</div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-4 detail-label">学科方向</div>
-                    <div class="col-8"><span class="badge bg-light text-dark">{{ sub.field }}</span></div>
+                <div class="row mb-1">
+                    <div class="col-3 detail-label">学科 / 性质</div>
+                    <div class="col-9"><span class="badge bg-light text-dark">{{ sub.field }}</span> <span class="ms-2">{{ sub.submission_type }}</span></div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-4 detail-label">来稿性质</div>
-                    <div class="col-8">{{ sub.submission_type }}</div>
+                <div class="row mb-1">
+                    <div class="col-3 detail-label">收稿日 / 排期</div>
+                    <div class="col-9">{{ sub.received_date }} {% if sub.issue %} / {{ sub.issue }}{% endif %}</div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-4 detail-label">收稿日期</div>
-                    <div class="col-8">{{ sub.received_date }}</div>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-4 detail-label">排期</div>
-                    <div class="col-8">{{ sub.issue or '未安排' }}</div>
-                </div>
+                {% if sub.notes %}
                 <div class="row mb-0">
-                    <div class="col-4 detail-label">备注</div>
-                    <div class="col-8">{{ sub.notes or '-' }}</div>
+                    <div class="col-3 detail-label">备注</div>
+                    <div class="col-9">{{ sub.notes }}</div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 状态操作 -->
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-header">更新状态</div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('submission_update_status', sid=sub.id) }}">
-                    <div class="mb-2">
-                        <select name="status" class="form-select form-select-sm">
-                            {% for s in statuses %}
-                            <option value="{{ s }}" {% if s == sub.status %}selected{% endif %}>{{ s }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-check"></i> 更新</button>
-                </form>
-                <hr>
-                <a href="{{ url_for('assignment_add') }}?sid={{ sub.id }}" class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-send"></i> 派稿</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- 作者信息 -->
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-header">作者信息</div>
-            <div class="card-body">
-                <div class="mb-2"><strong>第一作者</strong></div>
-                <div class="mb-1 detail-value">{{ sub.a1_name }}</div>
-                <div class="mb-1 text-muted fs-small">{{ sub.a1_aff or '-' }}{% if sub.a1_grade %} · {{ sub.a1_grade }}{% endif %}</div>
-                <div class="mb-2 text-muted fs-small">{{ sub.a1_email or '-' }} {% if sub.a1_phone %}| {{ sub.a1_phone }}{% endif %}</div>
-                {% if sub.a2_name %}
-                <hr>
-                <div class="mb-2"><strong>第二作者</strong></div>
-                <div class="mb-1 detail-value">{{ sub.a2_name }}</div>
-                <div class="mb-1 text-muted fs-small">{{ sub.a2_aff or '-' }}{% if sub.a2_grade %} · {{ sub.a2_grade }}{% endif %}</div>
                 {% endif %}
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+            <div class="card-header">作者信息</div>
+            <div class="card-body py-2">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="fw600 mb-1" style="font-size:13px">第一作者</div>
+                        <div class="detail-value">{{ sub.a1_name }}</div>
+                        <div class="text-muted fs-small">{{ sub.a1_aff or '-' }}{% if sub.a1_grade %} · {{ sub.a1_grade }}{% endif %}</div>
+                        <div class="text-muted fs-small">{{ sub.a1_email or '-' }} {% if sub.a1_phone %}| {{ sub.a1_phone }}{% endif %}</div>
+                    </div>
+                    {% if sub.a2_name %}
+                    <div class="col-6">
+                        <div class="fw600 mb-1" style="font-size:13px">第二作者</div>
+                        <div class="detail-value">{{ sub.a2_name }}</div>
+                        <div class="text-muted fs-small">{{ sub.a2_aff or '-' }}{% if sub.a2_grade %} · {{ sub.a2_grade }}{% endif %}</div>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
 
     <!-- 稿件附件 -->
-    {% if submission_files %}
-    <div class="col-12">
-        <div class="card">
+    <div class="col-md-5">
+        <div class="card" style="margin-bottom:12px">
             <div class="card-header">稿件附件</div>
-            <div class="card-body">
-                <div class="row g-2">
+            <div class="card-body py-2">
+                {% if submission_files %}
+                <div class="d-flex flex-wrap gap-2">
                     {% for sf in submission_files %}
-                    <div class="col-auto">
-                        <a href="{{ url_for('download_submission_file', sid=sub.id, fid=sf.id) }}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-download"></i> {{ sf.filename }}
-                            <span class="badge bg-light text-dark ms-1" style="font-size:10px">{{ sf.file_type }}</span>
-                        </a>
-                    </div>
+                    <a href="{{ url_for('download_submission_file', sid=sub.id, fid=sf.id) }}" class="btn btn-sm btn-outline-primary" title="{{ sf.file_path }}">
+                        <i class="bi bi-download"></i> {{ sf.filename }}
+                        <span class="badge bg-light text-dark ms-1" style="font-size:10px">{{ sf.file_type }}</span>
+                    </a>
                     {% endfor %}
                 </div>
+                {% else %}
+                <span class="text-muted fs-small">暂无附件</span>
+                {% endif %}
             </div>
         </div>
     </div>
-    {% endif %}
 
     <!-- 派稿历史 -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">派稿历史</div>
+        <div class="card" style="margin-bottom:12px">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>派稿历史</span>
+                <a href="{{ url_for('assignment_add') }}?sid={{ sub.id }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:11px"><i class="bi bi-plus"></i> 新建派稿</a>
+            </div>
             <div class="card-body p-0">
                 {% if assigns %}
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
-                        <thead><tr><th>轮次</th><th>编辑</th><th>邮箱</th><th>派稿日期</th><th>状态</th><th>结果</th><th>结果日期</th><th>意见摘要</th><th>审稿文件</th></tr></thead>
+                        <thead><tr><th>轮次</th><th>编辑</th><th>派稿日</th><th>状态</th><th>结果</th><th>结果日</th><th>意见摘要</th><th>文件</th></tr></thead>
                         <tbody>
                             {% for a in assigns %}
                             <tr>
                                 <td><span class="badge bg-light text-dark">{{ a.round }}</span></td>
-                                <td>{{ a.editor_name }}</td>
-                                <td class="text-muted">{{ a.editor_email or '-' }}</td>
-                                <td class="text-muted">{{ a.assigned_date }}</td>
-                                <td><span class="badge badge-status bg-secondary">{{ a.status }}</span></td>
-                                <td>{{ a.result or '-' }}</td>
-                                <td class="text-muted">{{ a.result_date or '-' }}</td>
-                                <td class="text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.opinion_summary or '-' }}</td>
+                                <td class="fw500">{{ a.editor_name }}</td>
+                                <td class="text-muted fs-small">{{ a.assigned_date }}</td>
+                                <td>
+                                    <span class="badge badge-status
+                                        {% if a.status == '待审' %}bg-secondary text-white
+                                        {% elif a.status == '审稿中' %}status-审稿中
+                                        {% elif a.status == '已返回' %}bg-info text-dark
+                                        {% elif a.status in ('已通过','返修') %}status-已录用
+                                        {% elif a.status == '退稿' %}status-已退稿
+                                        {% else %}bg-secondary{% endif %}">{{ a.status }}</span>
+                                </td>
+                                <td>{% if a.result == '通过' %}<span class="badge status-已录用">通过</span>
+                                    {% elif a.result == '返修' %}<span class="badge status-返修中">返修</span>
+                                    {% elif a.result == '退稿' %}<span class="badge status-已退稿">退稿</span>
+                                    {% else %}{{ a.result or '-' }}{% endif %}</td>
+                                <td class="text-muted fs-small">{{ a.result_date or '-' }}</td>
+                                <td class="text-muted text-ellipsis" style="max-width:160px" title="{{ a.opinion_summary or '' }}">{{ a.opinion_summary or '-' }}</td>
                                 <td>
                                     {% if a.file_review %}
-                                    <a href="{{ url_for('download_file', filename=a.file_review.replace('uploads/', '')) }}" class="btn btn-sm btn-outline-primary me-1" title="审稿评分表"><i class="bi bi-download"></i> 评分表</a>
+                                    <a href="{{ url_for('download_file', filename=a.file_review.replace('uploads/', '')) }}" class="btn-icon btn-sm btn-outline-primary" title="评分表"><i class="bi bi-file-earmark-text"></i></a>
                                     {% endif %}
                                     {% if a.file_annotated %}
-                                    <a href="{{ url_for('download_file', filename=a.file_annotated.replace('uploads/', '')) }}" class="btn btn-sm btn-outline-secondary" title="批注版"><i class="bi bi-download"></i> 批注版</a>
+                                    <a href="{{ url_for('download_file', filename=a.file_annotated.replace('uploads/', '')) }}" class="btn-icon btn-sm btn-outline-secondary ms-1" title="批注版"><i class="bi bi-file-earmark-pdf"></i></a>
                                     {% endif %}
                                     {% if not a.file_review and not a.file_annotated %}
                                     <span class="text-muted">-</span>
@@ -153,7 +152,7 @@
                     </table>
                 </div>
                 {% else %}
-                <div class="empty-state py-3"><p class="mb-0">暂无派稿记录</p></div>
+                <div class="empty-state py-2"><span class="text-muted" style="font-size:12px">暂无派稿记录</span></div>
                 {% endif %}
             </div>
         </div>

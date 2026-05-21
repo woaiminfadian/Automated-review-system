@@ -512,7 +512,7 @@ def assignments_list():
 
     sql = """
         SELECT a.id, a.round, a.status, a.result, a.assigned_date, a.result_date,
-               a.score_total, a.review_opinion,
+               a.score_total, a.review_opinion, a.file_review, a.file_annotated,
                s.id AS sid, s.title, s.field,
                e.name AS editor_name,
                au.name AS author_name

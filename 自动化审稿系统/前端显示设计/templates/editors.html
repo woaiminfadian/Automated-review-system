@@ -4,36 +4,35 @@
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h4>编辑管理</h4>
-        <p class="text-muted">审稿编辑信息管理</p>
+        <span class="text-muted">审稿编辑信息管理</span>
     </div>
-    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addEditorModal">
+    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addEditorModal">
         <i class="bi bi-plus-lg"></i> 添加编辑
     </button>
 </div>
 
-<div class="card">
+<div class="card" style="margin-bottom:12px">
     <div class="card-body p-0">
         {% if editors %}
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead>
-                    <tr><th>ID</th><th>姓名</th><th>邮箱</th><th>角色</th><th>负责领域</th><th>密码</th><th>状态</th><th style="width:120px">操作</th></tr>
+                    <tr><th style="width:36px">ID</th><th>姓名</th><th>邮箱</th><th>角色</th><th>负责领域</th><th>密码</th><th>状态</th><th style="width:100px">操作</th></tr>
                 </thead>
                 <tbody>
                     {% for e in editors %}
                     <tr>
-                        <td class="text-muted">{{ e.id }}</td>
+                        <td class="text-muted" style="font-size:12px">{{ e.id }}</td>
                         <td class="fw500">{{ e.name }}</td>
                         <td class="text-muted">{{ e.email or '-' }}</td>
                         <td>{{ e.role }}</td>
                         <td>
                             {% if e.subjects_list %}
-                            {% for s in e.subjects_list %}
-                            <span class="badge bg-light text-dark me-1">{{ s }}</span>
+                            {% for s in e.subjects_list[:3] %}
+                            <span class="badge bg-light text-dark me-1" style="font-size:11px">{{ s }}</span>
                             {% endfor %}
-                            {% else %}
-                            <span class="text-muted">-</span>
-                            {% endif %}
+                            {% if e.subjects_list|length > 3 %}<small class="text-muted">+{{ e.subjects_list|length - 3 }}</small>{% endif %}
+                            {% else %}<span class="text-muted">-</span>{% endif %}
                         </td>
                         <td>
                             {% if e.has_password and e.password_default %}
@@ -52,35 +51,24 @@
                             {% endif %}
                         </td>
                         <td>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-gear"></i>
+                            <div class="d-flex gap-1">
+                                <button type="button" class="btn-icon btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editEditorModal"
+                                    data-id="{{ e.id }}" data-name="{{ e.name }}" data-email="{{ e.email or '' }}"
+                                    data-subjects="{{ e.subjects_list|join(', ') }}" title="编辑">
+                                    <i class="bi bi-pencil"></i>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow">
-                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editEditorModal"
-                                        data-id="{{ e.id }}" data-name="{{ e.name }}" data-email="{{ e.email or '' }}"
-                                        data-subjects="{{ e.subjects_list|join(', ') }}">
-                                        <i class="bi bi-pencil me-2"></i>编辑信息</a>
-                                    </li>
-                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#setPasswordModal"
-                                        data-id="{{ e.id }}" data-name="{{ e.name }}">
-                                        <i class="bi bi-key me-2"></i>设置密码</a>
-                                    </li>
-                                    <li>
-                                        <form method="POST" action="{{ url_for('editor_toggle', eid=e.id) }}" style="display:inline">
-                                            <button type="submit" class="dropdown-item {% if e.active %}text-warning{% endif %}">
-                                                <i class="bi {% if e.active %}bi-pause-circle{% else %}bi-play-circle{% endif %} me-2"></i>
-                                                {% if e.active %}停用编辑{% else %}启用编辑{% endif %}
-                                            </button>
-                                        </form>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <form method="POST" action="{{ url_for('editor_delete', eid=e.id) }}" onsubmit="return confirm('确定删除编辑 {{ e.name }}？该编辑的所有派稿记录也将删除。')">
-                                            <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash me-2"></i>删除编辑</button>
-                                        </form>
-                                    </li>
-                                </ul>
+                                <button type="button" class="btn-icon btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#setPasswordModal"
+                                    data-id="{{ e.id }}" data-name="{{ e.name }}" title="设置密码">
+                                    <i class="bi bi-key"></i>
+                                </button>
+                                <form method="POST" action="{{ url_for('editor_toggle', eid=e.id) }}" style="display:inline">
+                                    <button type="submit" class="btn-icon btn-sm {% if e.active %}btn-outline-secondary{% else %}btn-outline-success{% endif %}" title="{% if e.active %}停用{% else %}启用{% endif %}">
+                                        <i class="bi {% if e.active %}bi-pause-circle{% else %}bi-play-circle{% endif %}"></i>
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('editor_delete', eid=e.id) }}" style="display:inline" onsubmit="return confirm('确定删除编辑 {{ e.name }}？该编辑的所有派稿记录也将删除。')">
+                                    <button type="submit" class="btn-icon btn-sm btn-outline-danger" title="删除"><i class="bi bi-trash"></i></button>
+                                </form>
                             </div>
                         </td>
                     </tr>
@@ -89,32 +77,27 @@
             </table>
         </div>
         {% else %}
-        <div class="empty-state"><i class="bi bi-person-badge"></i><p>暂无编辑</p></div>
+        <div class="empty-state py-3"><i class="bi bi-person-badge"></i><p>暂无编辑</p></div>
         {% endif %}
     </div>
 </div>
 
 <!-- 添加编辑模态框 -->
 <div class="modal fade" id="addEditorModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-sm">
         <div class="modal-content">
             <form method="POST" action="{{ url_for('editor_add') }}">
-                <div class="modal-header">
-                    <h5 class="modal-title">添加编辑</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
+                <div class="modal-header py-2"><h5 class="modal-title" style="font-size:15px">添加编辑</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body py-2">
                     <div class="row g-2">
-                        <div class="col-6"><input type="text" name="name" class="form-control" placeholder="姓名 *" required></div>
-                        <div class="col-6"><input type="text" name="email" class="form-control" placeholder="邮箱"></div>
-                        <div class="col-12">
-                            <input type="text" name="subjects" class="form-control" placeholder="负责领域(逗号分隔,如: 民法,商法)">
-                        </div>
+                        <div class="col-6"><input type="text" name="name" class="form-control form-control-sm" placeholder="姓名 *" required></div>
+                        <div class="col-6"><input type="text" name="email" class="form-control form-control-sm" placeholder="邮箱"></div>
+                        <div class="col-12"><input type="text" name="subjects" class="form-control form-control-sm" placeholder="负责领域(逗号分隔,如: 民法,商法)"></div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-primary">保存</button>
                 </div>
             </form>
         </div>
@@ -123,25 +106,20 @@
 
 <!-- 编辑编辑模态框 -->
 <div class="modal fade" id="editEditorModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-sm">
         <div class="modal-content">
             <form method="POST" action="">
-                <div class="modal-header">
-                    <h5 class="modal-title">编辑信息</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
+                <div class="modal-header py-2"><h5 class="modal-title" style="font-size:15px">编辑信息</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body py-2">
                     <div class="row g-2">
-                        <div class="col-6"><input type="text" name="name" class="form-control" placeholder="姓名 *" required></div>
-                        <div class="col-6"><input type="text" name="email" class="form-control" placeholder="邮箱"></div>
-                        <div class="col-12">
-                            <input type="text" name="subjects" class="form-control" placeholder="负责领域(逗号分隔,如: 民法,商法)">
-                        </div>
+                        <div class="col-6"><input type="text" name="name" class="form-control form-control-sm" placeholder="姓名 *" required></div>
+                        <div class="col-6"><input type="text" name="email" class="form-control form-control-sm" placeholder="邮箱"></div>
+                        <div class="col-12"><input type="text" name="subjects" class="form-control form-control-sm" placeholder="负责领域(逗号分隔)"></div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">保存修改</button>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-primary">保存修改</button>
                 </div>
             </form>
         </div>
@@ -150,20 +128,17 @@
 
 <!-- 设置密码模态框 -->
 <div class="modal fade" id="setPasswordModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-sm">
         <div class="modal-content">
             <form method="POST" action="">
-                <div class="modal-header">
-                    <h5 class="modal-title">设置密码</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header py-2"><h5 class="modal-title" style="font-size:15px">设置密码</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body py-2">
+                    <p class="fs-small mb-1">为 <strong id="pwEditorName"></strong> 设置登录密码</p>
+                    <input type="password" name="password" class="form-control form-control-sm" placeholder="密码（至少 4 位）" required minlength="4">
                 </div>
-                <div class="modal-body">
-                    <p>为 <strong id="pwEditorName"></strong> 设置登录密码</p>
-                    <input type="password" name="password" class="form-control" placeholder="密码（至少 4 位）" required minlength="4">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">保存密码</button>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-primary">保存密码</button>
                 </div>
             </form>
         </div>
@@ -183,7 +158,6 @@ document.addEventListener('DOMContentLoaded', function () {
         form.querySelector('[name="email"]').value = btn.getAttribute('data-email');
         form.querySelector('[name="subjects"]').value = btn.getAttribute('data-subjects');
     });
-
     var pwModal = document.getElementById('setPasswordModal');
     pwModal.addEventListener('show.bs.modal', function (event) {
         var btn = event.relatedTarget;

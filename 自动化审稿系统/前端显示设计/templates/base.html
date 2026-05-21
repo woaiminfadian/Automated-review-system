@@ -8,28 +8,28 @@
     <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
     <style>
         body {
-            background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
+            background: #f3f4f6;
             font-family: -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
+            font-size: 14px;
         }
 
         /* ── 侧边栏 ── */
         .sidebar {
-            position: fixed; top: 0; bottom: 0; left: 0; width: 220px;
-            background: linear-gradient(180deg, #0f1a2e 0%, #1a2d4a 100%);
-            z-index: 100; padding-top: 0; overflow-y: auto;
+            position: fixed; top: 0; bottom: 0; left: 0; width: 200px;
+            background: #1a2332; z-index: 100; padding-top: 0; overflow-y: auto;
         }
         .sidebar .brand {
-            padding: 20px 20px 14px; color: #fff; font-size: 16px; font-weight: 700;
+            padding: 16px 16px 12px; color: #fff; font-size: 15px; font-weight: 700;
             border-bottom: 1px solid rgba(255,255,255,.08);
             background: rgba(0,0,0,.15);
         }
         .sidebar .brand small {
-            display: block; font-size: 11px; font-weight: 400;
-            color: #7e9ec4; margin-top: 3px;
+            display: block; font-size: 10px; font-weight: 400;
+            color: #7e9ec4; margin-top: 2px;
         }
         .sidebar .nav-link {
-            color: #9bb3d1; padding: 11px 20px; font-size: 14px;
-            border-radius: 0; transition: all .2s;
+            color: #9bb3d1; padding: 9px 16px; font-size: 13px;
+            border-radius: 0; transition: all .15s;
             border-left: 3px solid transparent;
         }
         .sidebar .nav-link:hover {
@@ -40,72 +40,42 @@
             color: #fff; background: rgba(74,158,255,.15);
             border-left: 3px solid #4a9eff;
         }
-        .sidebar .nav-link i { margin-right: 10px; width: 18px; text-align: center; }
+        .sidebar .nav-link i { margin-right: 8px; width: 16px; text-align: center; }
 
         /* ── 主区域 ── */
-        .main { margin-left: 220px; padding: 24px 28px; min-height: 100vh; }
+        .main { margin-left: 200px; padding: 16px 20px; min-height: 100vh; }
 
         /* ── 页面头部 ── */
-        .page-header { margin-bottom: 20px; }
+        .page-header { margin-bottom: 16px; }
         .page-header h4 {
-            margin: 0; font-weight: 700; color: #1a2940;
-            position: relative; display: inline-block;
+            margin: 0; font-weight: 700; color: #1a2940; font-size: 18px;
         }
-        .page-header h4::after {
-            content: ''; position: absolute; bottom: -3px; left: 0;
-            width: 32px; height: 3px; background: linear-gradient(90deg, #4a9eff, #2dd4bf);
-            border-radius: 2px;
-        }
-        .page-header .text-muted { font-size: 13px; }
+        .page-header .text-muted { font-size: 12px; }
 
         /* ── 卡片 ── */
         .card {
-            border: none; border-radius: 12px;
-            box-shadow: 0 1px 4px rgba(0,0,0,.06);
-            margin-bottom: 16px; background: #fff;
-            transition: box-shadow .2s;
+            border: none; border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06);
+            margin-bottom: 12px; background: #fff;
         }
-        .card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.08); }
         .card-header {
-            background: #fff; border-bottom: 1px solid #f0f2f5;
-            padding: 14px 20px; font-weight: 600; font-size: 14px;
-            border-radius: 12px 12px 0 0 !important; color: #1e293b;
+            background: #fff; border-bottom: 1px solid #e5e7eb;
+            padding: 10px 16px; font-weight: 600; font-size: 13px;
+            border-radius: 6px 6px 0 0 !important; color: #1e293b;
         }
-
-        /* ── 统计卡片 ── */
-        .stat-card {
-            padding: 20px; border-radius: 12px; color: #fff;
-            transition: transform .15s, box-shadow .2s;
-            position: relative; overflow: hidden;
-        }
-        .stat-card::after {
-            content: ''; position: absolute; top: -30%; right: -20%;
-            width: 100px; height: 100px; border-radius: 50%;
-            background: rgba(255,255,255,.08);
-        }
-        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
-        .stat-card .number { font-size: 32px; font-weight: 700; line-height: 1.2; }
-        .stat-card .label { font-size: 13px; opacity: .87; }
-        .stat-blue   { background: linear-gradient(135deg, #1a73e8, #4a9eff); }
-        .stat-green  { background: linear-gradient(135deg, #0d9488, #34d399); }
-        .stat-orange { background: linear-gradient(135deg, #d97706, #fbbf24); }
-        .stat-purple { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
-        .stat-red    { background: linear-gradient(135deg, #dc2626, #f87171); }
-        .stat-gray   { background: linear-gradient(135deg, #475569, #94a3b8); }
-        .stat-teal   { background: linear-gradient(135deg, #0f766e, #2dd4bf); }
-        .stat-pink   { background: linear-gradient(135deg, #be185d, #f472b6); }
-        .stat-indigo { background: linear-gradient(135deg, #4338ca, #818cf8); }
+        .card-body { padding: 12px 16px; }
 
         /* ── 表格 ── */
+        .table { font-size: 13px; }
         .table th {
-            font-weight: 600; color: #475569; font-size: 12px;
+            font-weight: 600; color: #64748b; font-size: 11px;
             text-transform: none; border-top: none; white-space: nowrap;
-            background: #f8fafc; padding: 10px 12px !important;
+            background: #f8fafc; padding: 8px 10px !important;
         }
-        .table td { vertical-align: middle; font-size: 14px; padding: 10px 12px !important; }
+        .table td { vertical-align: middle; padding: 8px 10px !important; }
         .table-hover tbody tr:hover { background: #f0f7ff !important; }
 
-        /* ── 表格状态行：左侧彩色边框 ── */
+        /* ── 表格状态行左侧彩色边框 ── */
         .tr-待处理 { border-left: 3px solid #94a3b8; }
         .tr-派稿中 { border-left: 3px solid #3b82f6; }
         .tr-审稿中 { border-left: 3px solid #f59e0b; }
@@ -114,13 +84,10 @@
         .tr-已退稿 { border-left: 3px solid #ef4444; }
         .tr-作者撤稿 { border-left: 3px solid #8b5cf6; }
 
-        /* ── 徽章 ── */
+        /* ── 状态标签 ── */
         .badge-status {
-            font-size: 12px; padding: 3px 10px; border-radius: 12px; font-weight: 500;
+            font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500;
         }
-        .badge { font-weight: 500; }
-
-        /* ── 状态标签颜色 ── */
         .status-待处理 { background: #e2e8f0; color: #475569; }
         .status-派稿中 { background: #dbeafe; color: #1d4ed8; }
         .status-审稿中 { background: #fef3c7; color: #b45309; }
@@ -129,61 +96,111 @@
         .status-已退稿 { background: #fee2e2; color: #991b1b; }
         .status-作者撤稿 { background: #f3e8ff; color: #6d28d9; }
 
-        /* ── 其他公共样式 ── */
-        .search-bar { max-width: 400px; }
-        .detail-label { color: #64748b; font-size: 13px; margin-bottom: 2px; }
-        .detail-value { font-size: 15px; font-weight: 500; }
-        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
-        .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
-
-        @media (max-width: 768px) {
-            .sidebar { position: static; width: 100%; height: auto; }
-            .main { margin-left: 0; padding: 16px; }
-        }
-
-        .empty-state { text-align: center; padding: 40px 20px; color: #94a3b8; }
-        .empty-state i { font-size: 48px; margin-bottom: 12px; }
-        .flash-msg { animation: fadeIn .3s; border-radius: 8px; }
+        /* ── 公共样式 ── */
+        .detail-label { color: #64748b; font-size: 12px; margin-bottom: 1px; }
+        .detail-value { font-size: 14px; font-weight: 500; }
+        .toast-container { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+        .action-bar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .empty-state { text-align: center; padding: 32px 16px; color: #94a3b8; }
+        .empty-state i { font-size: 40px; margin-bottom: 8px; }
+        .flash-msg { animation: fadeIn .3s; border-radius: 6px; font-size: 13px; }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-8px); }
+            from { opacity: 0; transform: translateY(-6px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .clickable-row { cursor: pointer; }
-        .clickable-row:hover { background: #f0f7ff !important; }
         .fs-small { font-size: 12px; }
         .fw500 { font-weight: 500; }
         .fw600 { font-weight: 600; }
+        .text-ellipsis {
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            display: block; max-width: 100%;
+        }
 
-        /* ── 分割线变体 ── */
+        /* ── 紧凑 toolbar ── */
+        .toolbar-compact {
+            display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+            padding: 10px 0;
+        }
+        .toolbar-compact .form-select-sm,
+        .toolbar-compact .form-control-sm { width: auto; min-width: 100px; }
+
+        /* ── Icon-only 小按钮 ── */
+        .btn-icon {
+            width: 30px; height: 30px; padding: 0; display: inline-flex;
+            align-items: center; justify-content: center; border-radius: 5px;
+            font-size: 14px; line-height: 1;
+        }
+        .btn-icon.btn-sm { width: 28px; height: 28px; font-size: 13px; }
+
+        /* ── 状态快捷筛选 chips ── */
+        .filter-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+        .filter-chips .chip {
+            display: inline-block; padding: 3px 10px; border-radius: 12px;
+            font-size: 12px; border: 1px solid #d1d5db; color: #64748b;
+            text-decoration: none; transition: all .15s; cursor: pointer;
+            background: #fff; white-space: nowrap;
+        }
+        .filter-chips .chip:hover,
+        .filter-chips .chip.active {
+            background: #1a73e8; color: #fff; border-color: #1a73e8;
+        }
+
+        /* ── Metric strip (compact stats) ── */
+        .metric-strip {
+            display: flex; gap: 0; flex-wrap: wrap;
+            background: #fff; border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06);
+            margin-bottom: 12px;
+        }
+        .metric-item {
+            flex: 1; min-width: 80px; text-align: center;
+            padding: 12px 8px; text-decoration: none; color: inherit;
+            border-right: 1px solid #f0f2f5;
+            transition: background .15s;
+        }
+        .metric-item:last-child { border-right: none; }
+        .metric-item:hover { background: #f8fafc; text-decoration: none; color: inherit; }
+        .metric-item .metric-num { font-size: 22px; font-weight: 700; line-height: 1.2; }
+        .metric-item .metric-label { font-size: 11px; color: #64748b; margin-top: 2px; }
+        .metric-item .metric-num.text-blue { color: #1a73e8; }
+        .metric-item .metric-num.text-green { color: #0d9488; }
+        .metric-item .metric-num.text-orange { color: #d97706; }
+        .metric-item .metric-num.text-red { color: #dc2626; }
+        .metric-item .metric-num.text-purple { color: #7c3aed; }
+
+        /* ── 分割线 ── */
         hr.section-divider {
-            margin: 24px 0; border: 0; height: 1px;
-            background: linear-gradient(90deg, transparent, #cbd5e1, transparent);
+            margin: 16px 0; border: 0; height: 1px;
+            background: #e5e7eb;
         }
 
         /* ── 彩色卡片左边框 ── */
-        .card.border-start-primary   { border-left: 4px solid #4a9eff !important; }
-        .card.border-start-success   { border-left: 4px solid #10b981 !important; }
-        .card.border-start-warning   { border-left: 4px solid #f59e0b !important; }
-        .card.border-start-danger    { border-left: 4px solid #ef4444 !important; }
-        .card.border-start-purple    { border-left: 4px solid #8b5cf6 !important; }
-        .card.border-start-teal      { border-left: 4px solid #14b8a6 !important; }
+        .card.border-start-primary { border-left: 3px solid #3b82f6 !important; }
+        .card.border-start-success { border-left: 3px solid #10b981 !important; }
+        .card.border-start-warning { border-left: 3px solid #f59e0b !important; }
+        .card.border-start-danger  { border-left: 3px solid #ef4444 !important; }
+
+        @media (max-width: 768px) {
+            .sidebar { position: static; width: 100%; height: auto; }
+            .main { margin-left: 0; padding: 12px; }
+        }
     </style>
 </head>
 <body>
-    <!-- 侧边栏 -->
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+
     {% if current_user.is_authenticated %}
+    <!-- 侧边栏 -->
     <nav class="sidebar d-none d-md-block">
         <div class="brand">
             <i class="bi bi-journal-text me-1"></i>学报管理系统
             <small>中国政法大学研究生学报</small>
         </div>
-
-        <!-- 用户信息 -->
-        <div class="px-3 py-2" style="border-bottom:1px solid rgba(255,255,255,.06);font-size:13px">
+        <div class="px-3 py-2" style="border-bottom:1px solid rgba(255,255,255,.06);font-size:12px">
             <span style="color:#7e9ec4">{{ current_user.name }}</span>
             <span class="badge bg-light text-dark ms-1" style="font-size:10px">{{ current_user.role }}</span>
         </div>
-
         <ul class="nav flex-column mt-1">
             {% if current_user.is_admin %}
             <li class="nav-item">
@@ -202,6 +219,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link {% if request.path.startswith('/email') %}active{% endif %}" href="{{ url_for('email_inbox') }}">
+                    <i class="bi bi-envelope"></i>邮件收稿
+                    <span id="navEmailBadge" class="badge rounded-pill bg-danger ms-1 d-none" style="font-size:10px">0</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link {% if request.path.startswith('/authors') %}active{% endif %}" href="{{ url_for('authors_list') }}">
                     <i class="bi bi-people"></i>作者管理
                 </a>
@@ -210,14 +233,7 @@
                 <a class="nav-link {% if request.path.startswith('/editors') %}active{% endif %}" href="{{ url_for('editors_list') }}">
                     <i class="bi bi-person-badge"></i>编辑管理
                 </a>
-
-            <li class="nav-item">
-                <a class="nav-link {% if request.path.startswith('/email') %}active{% endif %}" href="{{ url_for('email_inbox') }}">
-                    <i class="bi bi-envelope"></i>邮件收稿
-                    <span id="navEmailBadge" class="badge rounded-pill bg-danger ms-1 d-none" style="font-size:10px">0</span>
-                </a>
             </li>
-
             <li class="nav-item"><hr style="border-color:rgba(255,255,255,.08);margin:4px 16px"></li>
             {% endif %}
             <li class="nav-item">
@@ -226,9 +242,8 @@
                 </a>
             </li>
         </ul>
-
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:12px 20px;border-top:1px solid rgba(255,255,255,.06)">
-            <a href="{{ url_for('logout') }}" class="nav-link" style="padding:6px 0;color:#9bb3d1;font-size:13px">
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:10px 16px;border-top:1px solid rgba(255,255,255,.06)">
+            <a href="{{ url_for('logout') }}" class="nav-link" style="padding:5px 0;color:#9bb3d1;font-size:12px">
                 <i class="bi bi-box-arrow-right"></i>退出登录
             </a>
         </div>
@@ -253,12 +268,10 @@
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('assignments_list') }}">派稿管理</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('authors_list') }}">作者管理</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('editors_list') }}">编辑管理</a></li>
-                <li class="nav-item"><hr style="border-color:rgba(255,255,255,.1);margin:4px 16px"></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('email_inbox') }}"><i class="bi bi-envelope"></i> 邮件收稿 <span id="navEmailBadge2" class="badge rounded-pill bg-danger ms-1 d-none" style="font-size:10px">0</span></a></li>
                 {% endif %}
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('editor_dashboard') }}">我的审稿</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">退出登录</a></li>
-
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('email_inbox') }}"><i class="bi bi-envelope"></i> 邮件收稿 <span id="navEmailBadge2" class="badge rounded-pill bg-danger ms-1 d-none" style="font-size:10px">0</span></a></li>
             </ul>
         </div>
     </nav>
@@ -266,7 +279,6 @@
 
     <!-- 主内容 -->
     <div class="main">
-        <!-- Flash 消息 -->
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         {% for category, msg in messages %}
@@ -286,16 +298,27 @@
     <script>
         // 自动隐藏 flash 消息
         document.querySelectorAll('.alert-dismissible').forEach(el => {
-            setTimeout(() => { if (el) el.remove() }, 5000);
+            setTimeout(() => { if (el) el.remove() }, 4000);
         });
-    </script>
-    {% block scripts %}{% endblock %}
-</body>
-</html>
 
+        // Toast helper
+        function showToast(message, type) {
+            type = type || 'info';
+            var bg = type === 'success' ? 'bg-success text-white' :
+                     type === 'danger' ? 'bg-danger text-white' :
+                     type === 'warning' ? 'bg-warning text-dark' : 'bg-info text-white';
+            var container = document.getElementById('toastContainer');
+            var id = 'toast-' + Date.now();
+            var html = '<div id="' + id + '" class="toast ' + bg + ' border-0" role="alert" data-bs-delay="3000">' +
+                '<div class="d-flex"><div class="toast-body py-2 px-3" style="font-size:13px">' + message + '</div>' +
+                '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>';
+            container.insertAdjacentHTML('beforeend', html);
+            var el = document.getElementById(id);
+            var toast = new bootstrap.Toast(el, {delay: 3000});
+            toast.show();
+            el.addEventListener('hidden.bs.toast', function() { el.remove(); });
+        }
 
-
-    <script>
         // 更新邮件 badge
         async function updateEmailBadge() {
             try {
@@ -314,3 +337,6 @@
         }
         document.addEventListener('DOMContentLoaded', updateEmailBadge);
     </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -7,17 +7,19 @@
 </div>
 
 <div class="row g-3">
-    <div class="col-md-6">
-        <div class="card">
+    <div class="col-md-7">
+        <div class="card" style="margin-bottom:12px">
             <div class="card-header">选择稿件与编辑</div>
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" id="assignForm">
+                    <!-- 稿件选择 -->
                     <div class="mb-3">
-                        <label class="form-label">稿件 <span class="text-danger">*</span></label>
-                        <select name="submission_id" class="form-select" required>
-                            <option value="">请选择</option>
+                        <label class="form-label fw600" style="font-size:13px">稿件 <span class="text-danger">*</span></label>
+                        <select name="submission_id" id="submissionSelect" class="form-select form-select-sm" required>
+                            <option value="">请选择稿件</option>
                             {% for p in pend %}
-                            <option value="{{ p.id }}" {% if request.args.get('sid')|string == p.id|string %}selected{% endif %}>
+                            <option value="{{ p.id }}" data-field="{{ p.field }}" data-title="{{ p.title }}" data-author="{{ p.author1 or '未知' }}" data-status="{{ p.status }}"
+                                {% if request.args.get('sid')|string == p.id|string %}selected{% endif %}>
                                 [#{{ p.id }}] {{ p.title[:50] }} — {{ p.field }} — {{ p.author1 or '未知' }}
                             </option>
                             {% endfor %}
@@ -27,66 +29,177 @@
                         {% endif %}
                     </div>
 
+                    <!-- 选中稿件摘要 -->
+                    <div id="submissionSummary" class="mb-3 p-2 rounded" style="background:#f8fafc;font-size:12px;display:none">
+                        <div class="fw600 mb-1">已选稿件</div>
+                        <div><span class="text-muted">标题:</span> <span id="summaryTitle"></span></div>
+                        <div><span class="text-muted">作者:</span> <span id="summaryAuthor"></span></div>
+                        <div><span class="text-muted">学科:</span> <span id="summaryField"></span></div>
+                        <div><span class="text-muted">状态:</span> <span id="summaryStatus"></span></div>
+                    </div>
+
+                    <!-- 编辑选择 -->
                     <div class="mb-3">
-                        <label class="form-label">编辑 <span class="text-danger">*</span></label>
-                        <select name="editor_id" class="form-select" required>
-                            <option value="">请选择</option>
+                        <label class="form-label fw600" style="font-size:13px">编辑 <span class="text-danger">*</span></label>
+                        <select name="editor_id" id="editorSelect" class="form-select form-select-sm" required>
+                            <option value="">请选择编辑</option>
                             {% for e in editors %}
-                            <option value="{{ e.id }}">
+                            <option value="{{ e.id }}" data-subjects="{{ e.subjects or '' }}">
                                 {{ e.name }} — {{ e.email or '无邮箱' }}
-                                {% if e.subjects %} ({% for s in e.subjects|json_loads %}{{ s }}, {% endfor %}){% endif %}
-                            </option>
+                                {% if e.subjects %}
+                                {% set subs = e.subjects|json_loads if e.subjects is string else e.subjects %}
+                                ({% for s in subs %}{{ s }}{% if not loop.last %}, {% endif %}{% endfor %})</option>
+                                {% endif %}
                             {% endfor %}
                         </select>
+                        <div id="editorHint" class="text-muted mt-1 fs-small" style="display:none"></div>
                     </div>
 
                     <div class="row g-2 mb-3">
                         <div class="col-6">
-                            <label class="form-label">审稿轮次</label>
-                            <select name="round" class="form-select">
+                            <label class="form-label" style="font-size:13px">审稿轮次</label>
+                            <select name="round" class="form-select form-select-sm">
                                 {% for r in rounds %}
                                 <option value="{{ r }}">{{ r }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label">派稿日期</label>
-                            <input type="text" name="assigned_date" class="form-control" placeholder="YYYY.MM.DD (默认今天)">
+                            <label class="form-label" style="font-size:13px">派稿日期</label>
+                            <input type="text" name="assigned_date" class="form-control form-control-sm" placeholder="YYYY.MM.DD (默认今天)">
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> 确认派稿</button>
-                    <a href="{{ url_for('assignments_list') }}" class="btn btn-outline-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary" id="submitBtn"><i class="bi bi-send"></i> 派稿</button>
+                    <span id="submitHint" class="text-muted fs-small ms-2"></span>
+                    <a href="{{ url_for('assignments_list') }}" class="btn btn-sm btn-outline-secondary ms-2">取消</a>
                 </form>
             </div>
         </div>
     </div>
 
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">可派的稿件列表</div>
+    <div class="col-md-5">
+        <div class="card" style="margin-bottom:12px">
+            <div class="card-header">可派稿件列表</div>
             <div class="card-body p-0">
                 {% if pend %}
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0 fs-small">
-                        <thead><tr><th>ID</th><th>标题</th><th>学科</th><th>作者</th></tr></thead>
+                    <table class="table table-hover mb-0 fs-small" id="pendTable">
+                        <thead><tr><th>ID</th><th>标题</th><th>学科</th></tr></thead>
                         <tbody>
                             {% for p in pend %}
-                            <tr>
-                                <td>{{ p.id }}</td>
-                                <td>{{ p.title[:35] }}{% if p.title|length > 35 %}…{% endif %}</td>
+                            <tr class="pend-row" style="cursor:pointer" data-sid="{{ p.id }}"
+                                onclick="selectSubmission('{{ p.id }}')"
+                                {% if request.args.get('sid')|string == p.id|string %}id="activePendRow"{% endif %}>
+                                <td class="text-muted">{{ p.id }}</td>
+                                <td>{{ p.title[:40] }}{% if p.title|length > 40 %}…{% endif %}</td>
                                 <td><span class="badge bg-light text-dark">{{ p.field }}</span></td>
-                                <td>{{ p.author1 or '-' }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
                 {% else %}
-                <div class="empty-state"><i class="bi bi-inbox"></i><p>暂无待派稿件</p></div>
+                <div class="empty-state py-2"><span class="text-muted" style="font-size:12px">暂无待派稿件</span></div>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Select submission from table row
+function selectSubmission(sid) {
+    document.getElementById('submissionSelect').value = sid;
+    document.getElementById('submissionSelect').dispatchEvent(new Event('change'));
+    // Highlight
+    document.querySelectorAll('.pend-row').forEach(r => r.style.background = '');
+    document.querySelectorAll('.pend-row').forEach(r => { if (r.dataset.sid === sid) r.style.background = '#f0f7ff'; });
+}
+
+// On submission change: show summary, filter editors
+document.getElementById('submissionSelect').addEventListener('change', function() {
+    var opt = this.options[this.selectedIndex];
+    var summary = document.getElementById('submissionSummary');
+    if (this.value) {
+        document.getElementById('summaryTitle').textContent = opt.dataset.title || '';
+        document.getElementById('summaryAuthor').textContent = opt.dataset.author || '';
+        document.getElementById('summaryField').textContent = opt.dataset.field || '';
+        document.getElementById('summaryStatus').textContent = opt.dataset.status || '';
+        summary.style.display = 'block';
+        filterEditors(opt.dataset.field || '');
+    } else {
+        summary.style.display = 'none';
+        filterEditors('');
+    }
+});
+
+// Filter/sort editor dropdown by discipline match
+var allEditorOptions = [];
+function filterEditors(field) {
+    var select = document.getElementById('editorSelect');
+    var hint = document.getElementById('editorHint');
+    // Save all options on first call
+    if (allEditorOptions.length === 0) {
+        for (var i = 1; i < select.options.length; i++) {
+            allEditorOptions.push({
+                value: select.options[i].value,
+                text: select.options[i].text,
+                subjects: select.options[i].dataset.subjects || ''
+            });
+        }
+    }
+    // Remove all except placeholder
+    while (select.options.length > 1) select.remove(1);
+
+    var matched = [], others = [];
+    allEditorOptions.forEach(function(opt) {
+        if (!field || opt.subjects.indexOf(field) >= 0) {
+            matched.push(opt);
+        } else {
+            others.push(opt);
+        }
+    });
+
+    // Add matched first, then others (with separator hint)
+    matched.concat(others).forEach(function(opt) {
+        var o = document.createElement('option');
+        o.value = opt.value;
+        o.textContent = opt.text;
+        select.appendChild(o);
+    });
+
+    if (field && matched.length > 0) {
+        hint.style.display = 'block';
+        hint.innerHTML = '<i class="bi bi-info-circle"></i> 负责「' + field + '」的编辑已排在前面（' + matched.length + ' 人）';
+    } else if (field) {
+        hint.style.display = 'block';
+        hint.innerHTML = '<i class="bi bi-exclamation-triangle"></i> 没有专门负责「' + field + '」的编辑，显示全部';
+    } else {
+        hint.style.display = 'none';
+    }
+}
+
+// Update submit button hint on editor change
+document.getElementById('editorSelect').addEventListener('change', function() {
+    var name = this.options[this.selectedIndex].text.split(' — ')[0];
+    document.getElementById('submitHint').textContent = this.value ? '→ 将派给: ' + name : '';
+});
+
+// Init: trigger change if ?sid= present
+document.addEventListener('DOMContentLoaded', function() {
+    var sel = document.getElementById('submissionSelect');
+    if (sel.value) {
+        sel.dispatchEvent(new Event('change'));
+        // Highlight active row
+        var activeRow = document.getElementById('activePendRow');
+        if (activeRow) activeRow.style.background = '#f0f7ff';
+    }
+    // Init editor hint
+    var edSel = document.getElementById('editorSelect');
+    if (edSel.value) edSel.dispatchEvent(new Event('change'));
+});
+</script>
 {% endblock %}
