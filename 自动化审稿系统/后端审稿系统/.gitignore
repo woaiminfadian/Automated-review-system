@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 .DS_Store
 *.sqlite3
+automation.config.json
