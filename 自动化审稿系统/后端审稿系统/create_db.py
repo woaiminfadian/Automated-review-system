@@ -105,6 +105,7 @@ def create_tables(conn):
         CREATE TABLE IF NOT EXISTS email_staging (
             id               INTEGER PRIMARY KEY AUTOINCREMENT,
             uid              TEXT NOT NULL,
+
             message_id       TEXT NOT NULL UNIQUE,
             subject_line     TEXT,
             sender           TEXT,
@@ -127,10 +128,20 @@ def create_tables(conn):
             value TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_assignments_editor ON assignments(editor_id);
+
+        CREATE TABLE IF NOT EXISTS submission_files (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            submission_id   INTEGER NOT NULL REFERENCES submissions(id),
+            filename        TEXT NOT NULL,
+            file_path       TEXT NOT NULL,
+            file_type       TEXT DEFAULT '原稿',
+            uploaded_at     TEXT DEFAULT (datetime('now','localtime'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_submission_files_sub
+            ON submission_files(submission_id);
     """)
 
-
-def log(conn, entity_type, entity_id, action, detail=""):
     conn.execute(
         "INSERT INTO activity_log (entity_type, entity_id, action, detail) VALUES (?,?,?,?)",
         (entity_type, entity_id, action, detail),

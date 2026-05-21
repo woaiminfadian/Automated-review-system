@@ -95,6 +95,27 @@
         </div>
     </div>
 
+    <!-- 稿件附件 -->
+    {% if submission_files %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">稿件附件</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    {% for sf in submission_files %}
+                    <div class="col-auto">
+                        <a href="{{ url_for('download_submission_file', sid=sub.id, fid=sf.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-download"></i> {{ sf.filename }}
+                            <span class="badge bg-light text-dark ms-1" style="font-size:10px">{{ sf.file_type }}</span>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- 派稿历史 -->
     <div class="col-12">
         <div class="card">

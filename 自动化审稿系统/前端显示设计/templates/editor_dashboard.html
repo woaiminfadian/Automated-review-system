@@ -61,7 +61,7 @@
                     {% for a in assigns %}
                     <tr class="tr-{{ a.status }}">
                         <td><span class="badge bg-light text-dark">{{ a.round }}</span></td>
-                        <td><a href="{{ url_for('submission_detail', sid=a.sid) }}" class="text-decoration-none">{{ a.title[:35] }}{% if a.title|length > 35 %}…{% endif %}</a></td>
+                        <td><a href="{{ url_for('editor_review', aid=a.id) }}" class="text-decoration-none">{{ a.title[:35] }}{% if a.title|length > 35 %}…{% endif %}</a></td>
                         <td><span class="badge bg-light text-dark">{{ a.field }}</span></td>
                         <td>{{ a.author_name or '-' }}</td>
                         <td class="text-muted">{{ a.assigned_date }}</td>

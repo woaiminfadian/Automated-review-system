@@ -352,8 +352,13 @@ def submission_detail(sid):
         FROM assignments a JOIN editors e ON a.editor_id = e.id
         WHERE a.submission_id=? ORDER BY a.round, a.assigned_date
     """, (sid,)).fetchall()
+    submission_files = conn.execute(
+        "SELECT id, filename, file_path, file_type FROM submission_files WHERE submission_id=?",
+        (sid,),
+    ).fetchall()
     conn.close()
     return render_template("submission_detail.html", sub=sub, assigns=assigns,
+                           submission_files=submission_files,
                            statuses=STATUSES, rounds=ROUNDS, assign_statuses=ASSIGN_STATUSES)
 
 
@@ -987,8 +992,13 @@ def editor_review(aid):
         flash("审稿意见已提交!", "success")
         return redirect(url_for("editor_dashboard"))
 
+    # 稿件附件列表（供下载）
+    submission_files = conn.execute(
+        "SELECT id, filename, file_path, file_type FROM submission_files WHERE submission_id=?",
+        (assign["submission_id"],),
+    ).fetchall()
     conn.close()
-    return render_template("editor_review.html", assign=assign)
+    return render_template("editor_review.html", assign=assign, submission_files=submission_files)
 
 
 def _float_or_none(v):
@@ -1006,6 +1016,48 @@ def download_file(filename):
     return send_from_directory(UPLOAD_DIR, filename)
 
 
+
+@app.route("/submission/<int:sid>/file/<int:fid>")
+@login_required
+def download_submission_file(sid, fid):
+    """下载稿件附件 — 编辑只能下载分配给自己稿件的文件"""
+    conn = get_conn()
+    sf = conn.execute("SELECT * FROM submission_files WHERE id=? AND submission_id=?", (fid, sid)).fetchone()
+    if not sf:
+        conn.close()
+        flash("文件不存在", "danger")
+        return redirect(url_for("editor_dashboard"))
+
+    # 权限：管理员 or 该稿件分配给当前编辑
+    if not current_user.is_admin:
+        assigned = conn.execute(
+            "SELECT COUNT(*) FROM assignments WHERE submission_id=? AND editor_id=?",
+            (sid, current_user.id),
+        ).fetchone()[0]
+        if not assigned:
+            conn.close()
+            flash("无权下载此文件", "danger")
+            return redirect(url_for("editor_dashboard"))
+
+    conn.close()
+    file_path = os.path.join(DB_DIR, sf["file_path"])
+    if not os.path.exists(file_path):
+        flash("文件未找到", "danger")
+        return redirect(url_for("editor_dashboard"))
+    return send_from_directory(os.path.dirname(file_path), os.path.basename(file_path),
+                               download_name=sf["filename"], as_attachment=True)
+
+
+@app.route("/download/scoring-template")
+@login_required
+def download_scoring_template():
+    """下载空白审稿评分表模板"""
+    template_path = os.path.join(os.path.dirname(DB_DIR), "审稿评分表.docx")
+    if not os.path.exists(template_path):
+        flash("模板文件不存在", "danger")
+        return redirect(url_for("editor_dashboard"))
+    return send_from_directory(os.path.dirname(template_path), "审稿评分表.docx",
+                               download_name="审稿评分表（模板）.docx", as_attachment=True)
 from flask import send_from_directory
 
 
@@ -1236,6 +1288,12 @@ def api_email_import(staging_id):
                 final_paths.append(f"uploads/submission_{sid}/{os.path.basename(att['staged_path'])}")
         if final_paths:
             conn.execute("UPDATE submissions SET file_path=? WHERE id=?", (final_paths[0], sid))
+        # Write all attachments to submission_files for structured tracking
+        for fp in final_paths:
+            conn.execute(
+                "INSERT INTO submission_files (submission_id, filename, file_path, file_type) VALUES (?,?,?,?)",
+                (sid, os.path.basename(fp), fp, "原稿"),
+            )
 
     conn.execute("UPDATE email_staging SET status='已录入' WHERE id=?", (staging_id,))
     log_activity(conn, "submission", sid, "邮件导入",

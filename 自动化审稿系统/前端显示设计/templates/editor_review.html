@@ -84,6 +84,30 @@
 {% endif %}
 
 {% if assign.status in ('待审', '审稿中') %}
+<!-- 稿件原稿/附件下载 -->
+{% if submission_files %}
+<div class="card mb-3 border-start-primary">
+    <div class="card-header">稿件文件</div>
+    <div class="card-body">
+        <div class="row g-2">
+            {% for sf in submission_files %}
+            <div class="col-auto">
+                <a href="{{ url_for('download_submission_file', sid=assign.submission_id, fid=sf.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-download"></i> {{ sf.filename }}
+                    <span class="badge bg-light text-dark ms-1" style="font-size:10px">{{ sf.file_type }}</span>
+                </a>
+            </div>
+            {% endfor %}
+            <div class="col-auto">
+                <a href="{{ url_for('download_scoring_template') }}" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-file-earmark-text"></i> 审稿评分表模板
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- 审稿表单 -->
 <form method="POST" enctype="multipart/form-data">
     <div class="card mb-3">
