@@ -90,19 +90,25 @@
 </div>
 {% endif %}
 
-{% if assign.status in ('待审', '审稿中') %}
-<!-- 稿件文件下载 -->
-{% if submission_files %}
+<!-- 稿件文件下载（所有状态均可见） -->
+{% if submission_files or submission_main_file %}
 <div class="card mb-2 border-start-primary">
-    <div class="card-header" style="font-size:12px">稿件文件</div>
+    <div class="card-header" style="font-size:12px">稿件文件下载</div>
     <div class="card-body py-2">
         <div class="d-flex flex-wrap gap-2 align-items-center">
-            {% for sf in submission_files %}
-            <a href="{{ url_for('download_submission_file', sid=assign.submission_id, fid=sf.id) }}" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-download"></i> {{ sf.filename }}
-                <span class="badge bg-light text-dark ms-1" style="font-size:10px">{{ sf.file_type }}</span>
-            </a>
-            {% endfor %}
+            {% if submission_files %}
+                {% for sf in submission_files %}
+                <a href="{{ url_for('download_submission_file', sid=assign.submission_id, fid=sf.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-download"></i> {{ sf.filename }}
+                    <span class="badge bg-light text-dark ms-1" style="font-size:10px">{{ sf.file_type }}</span>
+                </a>
+                {% endfor %}
+            {% elif submission_main_file %}
+                {% set main_path = submission_main_file.replace('uploads/', '') %}
+                <a href="{{ url_for('download_file', filename=main_path) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-download"></i> {{ main_path.split('/')[-1] }}
+                </a>
+            {% endif %}
             <a href="{{ url_for('download_scoring_template') }}" class="btn btn-sm btn-outline-success ms-2">
                 <i class="bi bi-file-earmark-text"></i> 评分表模板
             </a>
@@ -111,6 +117,7 @@
 </div>
 {% endif %}
 
+{% if assign.status in ('待审', '审稿中') %}
 <!-- 审稿表单 -->
 <form method="POST" enctype="multipart/form-data">
     <!-- 评分（紧凑横向） -->

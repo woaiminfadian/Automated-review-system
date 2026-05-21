@@ -105,7 +105,6 @@ def create_tables(conn):
         CREATE TABLE IF NOT EXISTS email_staging (
             id               INTEGER PRIMARY KEY AUTOINCREMENT,
             uid              TEXT NOT NULL,
-
             message_id       TEXT NOT NULL UNIQUE,
             subject_line     TEXT,
             sender           TEXT,
@@ -120,6 +119,7 @@ def create_tables(conn):
             attachments_json TEXT DEFAULT '[]',
             needs_review     INTEGER DEFAULT 1,
             status           TEXT DEFAULT '待录入',
+            imported_submission_id INTEGER,
             created_at       TEXT DEFAULT (datetime('now','localtime'))
         );
 

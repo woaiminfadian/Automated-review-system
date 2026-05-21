@@ -359,9 +359,11 @@ def submission_detail(sid):
         "SELECT id, filename, file_path, file_type FROM submission_files WHERE submission_id=?",
         (sid,),
     ).fetchall()
+    submission_main_file = sub["file_path"] if sub["file_path"] else ""
     conn.close()
     return render_template("submission_detail.html", sub=sub, assigns=assigns,
                            submission_files=submission_files,
+                           submission_main_file=submission_main_file,
                            statuses=STATUSES, rounds=ROUNDS, assign_statuses=ASSIGN_STATUSES)
 
 
@@ -921,7 +923,7 @@ def editor_change_password():
 def editor_review(aid):
     conn = get_conn()
     assign = conn.execute("""
-        SELECT a.*, s.title, s.field, s.submission_type,
+        SELECT a.*, s.title, s.field, s.submission_type, s.file_path,
                au.name AS author_name, au.affiliation AS author_aff
         FROM assignments a
         JOIN submissions s ON a.submission_id = s.id
@@ -1007,8 +1009,12 @@ def editor_review(aid):
         "SELECT id, filename, file_path, file_type FROM submission_files WHERE submission_id=?",
         (assign["submission_id"],),
     ).fetchall()
+    # 兼容旧数据：submission_files 为空时，回退到 submissions.file_path
+    submission_main_file = assign["file_path"] if assign["file_path"] else ""
     conn.close()
-    return render_template("editor_review.html", assign=assign, submission_files=submission_files)
+    return render_template("editor_review.html", assign=assign,
+                           submission_files=submission_files,
+                           submission_main_file=submission_main_file)
 
 
 def _float_or_none(v):
@@ -1023,9 +1029,9 @@ def _float_or_none(v):
 @app.route("/uploads/<path:filename>")
 @login_required
 def download_file(filename):
-    # Permission: admin can download any upload; editors only their own review files
     if not current_user.is_admin:
         import re
+        # 审稿文件：仅允许编辑本人
         m = re.match(r'^review_(\d+)/', filename)
         if m:
             aid = int(m.group(1))
@@ -1033,6 +1039,19 @@ def download_file(filename):
             owner = conn.execute("SELECT editor_id FROM assignments WHERE id=?", (aid,)).fetchone()
             conn.close()
             if not owner or owner[0] != current_user.id:
+                flash("无权下载此文件", "danger")
+                return redirect(url_for("editor_dashboard"))
+        # 稿件原稿：仅允许分配给该稿件的编辑
+        elif re.match(r'^submission_(\d+)/', filename):
+            m2 = re.match(r'^submission_(\d+)/', filename)
+            sid = int(m2.group(1))
+            conn = get_conn()
+            assigned = conn.execute(
+                "SELECT COUNT(*) FROM assignments WHERE submission_id=? AND editor_id=?",
+                (sid, current_user.id),
+            ).fetchone()[0]
+            conn.close()
+            if not assigned:
                 flash("无权下载此文件", "danger")
                 return redirect(url_for("editor_dashboard"))
         else:
@@ -1085,18 +1104,40 @@ def download_scoring_template():
                                download_name="审稿评分表（模板）.docx", as_attachment=True)
 
 # ═══════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════
 # 邮件收稿 API
 # ═══════════════════════════════════════════════════════
 
+import re as _re
+_HTML_RE = _re.compile(r'<style[^>]*>.*?</style>', _re.DOTALL | _re.IGNORECASE)
+_TAG_RE = _re.compile(r'<[^>]+>')
+_WS_RE = _re.compile(r'\n{3,}')
+
+def _clean_body_html(text):
+    """清洗邮件正文中的 HTML/style 内容，保留纯文本信息"""
+    if not text:
+        return ""
+    text = _HTML_RE.sub('', text)
+    text = _TAG_RE.sub('', text)
+    text = _WS_RE.sub('\n\n', text)
+    text = text.strip()
+    if len(text) > 2000:
+        text = text[:2000] + "\n\n... [正文过长，已截断]"
+    return text
 
 @app.route("/email/status")
 @login_required
 @admin_required
 def email_status():
     conn = get_conn()
-    new_count = conn.execute("SELECT COUNT(*) FROM email_staging WHERE status='待录入'").fetchone()[0]
+    total = conn.execute("SELECT COUNT(*) FROM email_staging").fetchone()[0]
+    pending = conn.execute("SELECT COUNT(*) FROM email_staging WHERE status='待录入'").fetchone()[0]
+    needs_review = conn.execute("SELECT COUNT(*) FROM email_staging WHERE status='待录入' AND needs_review=1").fetchone()[0]
+    imported = conn.execute("SELECT COUNT(*) FROM email_staging WHERE status='已录入'").fetchone()[0]
+    ignored = conn.execute("SELECT COUNT(*) FROM email_staging WHERE status='已忽略'").fetchone()[0]
     conn.close()
-    return {"new_count": new_count, "total_pending": new_count}
+    return {"new_count": pending, "total_pending": pending, "total": total,
+            "needs_review": needs_review, "imported": imported, "ignored": ignored}
 
 
 @app.route("/api/email/fetch", methods=["POST"])
@@ -1346,7 +1387,7 @@ def api_email_import(staging_id):
         if final_paths:
             conn.execute("UPDATE submissions SET file_path=? WHERE id=?", (final_paths[0], sid))
 
-    conn.execute("UPDATE email_staging SET status='已录入' WHERE id=?", (staging_id,))
+    conn.execute("UPDATE email_staging SET status='已录入', needs_review=0, imported_submission_id=? WHERE id=?", (sid, staging_id))
     log_activity(conn, "submission", sid, "邮件导入",
                  f"标题: {title}, 发件人: {staging['sender_name'] or ''}")
     conn.commit()
@@ -1354,21 +1395,39 @@ def api_email_import(staging_id):
 
     return {"success": True, "submission_id": sid, "message": "稿件已录入"}
 
-
 @app.route("/email/inbox")
 @login_required
 @admin_required
 def email_inbox():
     conn = get_conn()
     status_f = request.args.get("status", "")
-    if status_f:
+    needs_r = request.args.get("needs_review", "")
+    kw = request.args.get("kw", "").strip()
+
+    # 构建查询条件
+    conditions = []
+    params = []
+
+    if needs_r == "1":
+        conditions.append("status='待录入' AND needs_review=1")
+    elif status_f:
+        conditions.append("status=?")
+        params.append(status_f)
+
+    if kw:
+        conditions.append("(title LIKE ? OR sender LIKE ? OR sender_name LIKE ? OR authors_json LIKE ?)")
+        like_kw = f"%{kw}%"
+        params.extend([like_kw, like_kw, like_kw, like_kw])
+
+    if conditions:
+        where_clause = " AND ".join(conditions)
         rows = conn.execute(
-            "SELECT * FROM email_staging WHERE status=? ORDER BY id DESC LIMIT 50",
-            (status_f,),
+            f"SELECT * FROM email_staging WHERE {where_clause} ORDER BY id DESC LIMIT 100",
+            params,
         ).fetchall()
     else:
         rows = conn.execute(
-            "SELECT * FROM email_staging ORDER BY id DESC LIMIT 50"
+            "SELECT * FROM email_staging ORDER BY CASE status WHEN '待录入' THEN 0 WHEN '已录入' THEN 2 WHEN '已忽略' THEN 3 ELSE 1 END, id DESC LIMIT 100"
         ).fetchall()
 
     staging_list = []
@@ -1382,22 +1441,21 @@ def email_inbox():
             d["attachments"] = json.loads(d["attachments_json"] or "[]")
         except Exception:
             d["attachments"] = []
+        d["body_text_clean"] = _clean_body_html(d.get("body_text", ""))
         staging_list.append(d)
-
-    pending_count = conn.execute(
-        "SELECT COUNT(*) FROM email_staging WHERE status='待录入'"
-    ).fetchone()[0]
-    imported_today = conn.execute(
-        "SELECT COUNT(*) FROM email_staging WHERE status='已录入' AND date(created_at)=date('now','localtime')"
-    ).fetchone()[0]
+    # 真实计数
+    total_count = conn.execute("SELECT COUNT(*) FROM email_staging").fetchone()[0]
+    pending_count = conn.execute("SELECT COUNT(*) FROM email_staging WHERE status='待录入'").fetchone()[0]
+    needs_review_count = conn.execute("SELECT COUNT(*) FROM email_staging WHERE status='待录入' AND needs_review=1").fetchone()[0]
+    imported_count = conn.execute("SELECT COUNT(*) FROM email_staging WHERE status='已录入'").fetchone()[0]
+    ignored_count = conn.execute("SELECT COUNT(*) FROM email_staging WHERE status='已忽略'").fetchone()[0]
     conn.close()
 
     return render_template("email_inbox.html", staging_list=staging_list,
-                           pending_count=pending_count, imported_today=imported_today,
-                           status_f=status_f, fields=FIELDS)
-
-
-@app.route("/email/staging/<int:staging_id>/update", methods=["POST"])
+                           total_count=total_count, pending_count=pending_count,
+                           needs_review_count=needs_review_count,
+                           imported_count=imported_count, ignored_count=ignored_count,
+                           status_f=status_f, needs_r=needs_r, kw=kw, fields=FIELDS)
 @login_required
 @admin_required
 def email_staging_update(staging_id):
@@ -1431,6 +1489,18 @@ def email_staging_update(staging_id):
     return {"success": True}
 
 
+@app.route("/email/staging/<int:staging_id>/confirm", methods=["POST"])
+@login_required
+@admin_required
+def email_staging_confirm(staging_id):
+    """确认已核对邮件信息，清除 needs_review 标记"""
+    conn = get_conn()
+    conn.execute("UPDATE email_staging SET needs_review=0 WHERE id=?", (staging_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+
 @app.route("/email/staging/<int:staging_id>/dismiss", methods=["POST"])
 @login_required
 @admin_required
@@ -1441,7 +1511,21 @@ def email_staging_dismiss(staging_id):
     conn.close()
     return {"success": True}
 
+
+@app.route("/email/staging/<int:staging_id>/undismiss", methods=["POST"])
+@login_required
+@admin_required
+def email_staging_undismiss(staging_id):
+    """将已忽略的邮件恢复为待录入"""
+    conn = get_conn()
+    conn.execute("UPDATE email_staging SET status='待录入' WHERE id=? AND status='已忽略'", (staging_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+
 # ── 启动 ────────────────────────────────────────────
+
 
 if __name__ == "__main__":
     ensure_upload_dir()
