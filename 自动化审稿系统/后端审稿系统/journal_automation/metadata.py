@@ -32,10 +32,13 @@ def parse_submission(message_id: str, uid: Optional[str], message, config: AppCo
     sender_name, sender_addr = parseaddr(decode_mime_header(message.get("From")))
     body_text = extract_body_text(message)
     attachments = extract_attachments(message)
-    reference_text = "\n".join([subject_line, body_text] + [item.filename for item in attachments] + [item.extracted_text[:2000] for item in attachments if item.extracted_text])
-
     title = detect_title(subject_line, body_text, attachments)
-    discipline, discipline_confident = detect_discipline(reference_text, config)
+    discipline, discipline_confident = detect_discipline(
+        subject_line,
+        body_text,
+        [item.filename for item in attachments],
+        config,
+    )
     if title and discipline != "待确认":
         prefix = discipline + "-"
         if title.startswith(prefix):
@@ -103,18 +106,49 @@ def clean_title(title: str) -> str:
     return title
 
 
-def detect_discipline(text: str, config: AppConfig) -> Tuple[str, bool]:
-    condensed = normalize_whitespace(text)
+def _build_alias_list(config: AppConfig) -> list[tuple[str, str]]:
+    """构建按别名长度降序排列的 (alias, discipline) 列表。
+    更长别名优先匹配（如"经济法"在"经济"之前），避免短别名误匹配。
+    """
+    pairs = []
     for discipline, aliases in config.subject_aliases.items():
         for alias in [discipline] + aliases:
-            if alias and alias in condensed:
-                return discipline, True
-    title = extract_possible_title_line(condensed)
-    for discipline, aliases in config.subject_aliases.items():
-        for alias in [discipline] + aliases:
-            if alias and alias in title:
-                return discipline, True
+            if alias:
+                pairs.append((alias, discipline))
+    pairs.sort(key=lambda x: len(x[0]), reverse=True)
+    return pairs
+
+
+def _match_discipline(text: str, alias_list: list[tuple[str, str]]) -> tuple[str, bool]:
+    """在文本中搜索第一个匹配的学科别名，返回 (学科名, 是否匹配)。"""
+    normalized = normalize_whitespace(text)
+    for alias, discipline in alias_list:
+        if alias in normalized:
+            return discipline, True
     return "待确认", False
+
+
+def detect_discipline(
+    subject_line: str,
+    body_text: str,
+    attachment_filenames: list[str],
+    config: AppConfig,
+) -> tuple[str, bool]:
+    """三层搜索学科：
+    第一层（最高优先级）：仅在邮件主题行搜索，避免全文关键词污染。
+    第二层：正文 + 附件文件名。
+    不搜索附件 docx 正文内容，因为论文正文常提及无关学科名导致误判。
+    """
+    alias_list = _build_alias_list(config)
+
+    # 第一层：主题行优先
+    discipline, confident = _match_discipline(subject_line, alias_list)
+    if confident:
+        return discipline, True
+
+    # 第二层：正文 + 附件文件名
+    secondary = body_text + "\n" + "\n".join(attachment_filenames)
+    return _match_discipline(secondary, alias_list)
 
 
 def extract_possible_title_line(text: str) -> str:

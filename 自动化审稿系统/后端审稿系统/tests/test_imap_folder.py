@@ -7,9 +7,9 @@ from email.message import Message
 from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
-from .config import AppConfig
-from .models import AttachmentData
-from .utils import extract_docx_text_from_bytes, normalize_whitespace
+from journal_automation.config import AppConfig
+from journal_automation.models import AttachmentData
+from journal_automation.utils import extract_docx_text_from_bytes, normalize_whitespace
 
 
 def decode_mime_header(value: Optional[str]) -> str:

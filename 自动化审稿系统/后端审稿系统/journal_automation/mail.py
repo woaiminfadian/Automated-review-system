@@ -70,6 +70,20 @@ def extract_attachments(message: Message) -> List[AttachmentData]:
     return attachments
 
 
+def _send_imap_id(client: imaplib.IMAP4_SSL) -> None:
+    """发送 IMAP ID 命令 (RFC 2971)，满足 126 邮箱安全检查要求。"""
+    # ID 命令在 Python imaplib 标准库中未注册，需要先添加
+    imaplib.Commands["ID"] = ("AUTH", "SELECTED")
+    id_params = (
+        '("name" "ClaudeCode" "version" "1.0" '
+        '"vendor" "journal_automation" '
+        '"support-email" "fdyjsmsfz@126.com")'
+    )
+    typ, data = client._simple_command("ID", id_params)
+    if typ != "OK":
+        raise RuntimeError(f"IMAP ID 命令失败: {data}")
+
+
 def fetch_messages_from_imap(
     config: AppConfig,
     after_uid: Optional[str] = None,
@@ -79,6 +93,7 @@ def fetch_messages_from_imap(
     client = imaplib.IMAP4_SSL(mailbox.imap_host, mailbox.imap_port)
     try:
         client.login(mailbox.username, mailbox.password)
+        _send_imap_id(client)  # 126 邮箱要求带上 IMAP ID 信息
         # 必须检查 select 返回值，避免停留在 AUTH 状态
         status, _ = client.select(mailbox.folder)
         if status != "OK":
@@ -116,7 +131,7 @@ def load_messages_from_eml_dir(directory: Path) -> Iterable[Tuple[str, bytes]]:
 
 
 def is_submission_email(message: Message) -> bool:
-    """判断一封邮件是否为投稿邮件（过滤系统通知、回复等无效邮件）。"""
+    """判断一封邮件是否为投稿邮件（过滤系统通知、审稿回复、录用通知等非投稿邮件）。"""
     sender = message.get("From", "")
     subject = decode_mime_header(message.get("Subject", ""))
 
@@ -128,19 +143,30 @@ def is_submission_email(message: Message) -> bool:
     if any(p in sender for p in system_senders):
         return False
 
+    # 排除已知的非投稿标记（定稿、录用通知、著作权协议、出版社送审等）
+    non_submission_markers = [
+        "【定稿】", "【录用", "【一审", "【二审", "【三审",
+        "【撤稿", "审稿意见", "审回", "著作权使用协议", "版权协议",
+        "定稿提交",          # 不带【】的定稿提交
+        "【出版社送审】",     # 出版社送审链
+    ]
+    if any(m in subject for m in non_submission_markers):
+        return False
+
     # 投稿应有附件（至少一篇稿件文档）
     attachments = extract_attachments(message)
     if not attachments:
         return False
 
-    # 跳过纯回复/转发链（不含投稿标记）
-    # 注：不跳过有投稿标记的回复（如"【定稿】"、"【录用通知】"）
+    # 跳过纯回复/转发链（含中英文冒号变体）
     is_reply = any(
-        subject.startswith(prefix) for prefix in ["Re:", "回复：", "回复:", "回複："]
+        subject.startswith(prefix) for prefix in [
+            "Re:", "Re：", "Re ",
+            "回复：", "回复:", "回复 ",
+            "回複：", "回覆：",
+        ]
     )
-    submission_markers = ["【定稿】", "【录用", "【一审", "【二审", "【三审"]
-    has_marker = any(m in subject for m in submission_markers)
-    if is_reply and not has_marker:
+    if is_reply:
         return False
 
     return True

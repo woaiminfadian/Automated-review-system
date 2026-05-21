@@ -36,7 +36,9 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if e.has_password %}
+                            {% if e.has_password and e.password_default %}
+                            <span class="badge bg-warning text-dark badge-status">默认密码</span>
+                            {% elif e.has_password %}
                             <span class="badge bg-success badge-status">已设置</span>
                             {% else %}
                             <span class="badge bg-secondary badge-status">未设置</span>

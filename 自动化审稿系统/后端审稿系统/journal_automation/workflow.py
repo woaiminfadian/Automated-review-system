@@ -7,6 +7,7 @@ from typing import Iterable, Optional
 
 from .config import AppConfig
 from .mail import (
+    fetch_messages_from_imap,
     fetch_messages_from_pop3,
     is_submission_email,
     load_messages_from_eml_dir,
@@ -47,8 +48,12 @@ def sync_submissions(
         if eml_dir:
             raw_messages = load_messages_from_eml_dir(eml_dir)
         else:
-            # 改用 POP3 抓取邮件（126 邮箱 IMAP 存在 Unsafe Login 问题）
-            raw_messages = fetch_messages_from_pop3(config, limit=limit)
+            # 优先使用 IMAP（通过 ID 命令满足 126 安全检查），失败时回退到 POP3
+            try:
+                raw_messages = fetch_messages_from_imap(config, limit=limit)
+            except Exception as imap_err:
+                print(f"IMAP 连接失败: {imap_err}，尝试 POP3 回退...")
+                raw_messages = fetch_messages_from_pop3(config, limit=limit)
 
         summary = {"created": 0, "skipped": 0, "manual_review": 0}
         last_uid: Optional[str] = None
@@ -88,8 +93,7 @@ def sync_submissions(
                 summary["manual_review"] += 1
             summary["created"] += 1
             last_uid = uid
-        # POP3 没有 UID 持久化概念，仅当使用本地 eml 时才更新 last_uid
-        if last_uid and eml_dir:
+        if last_uid:
             state.set_last_uid(last_uid)
         return summary
     finally:

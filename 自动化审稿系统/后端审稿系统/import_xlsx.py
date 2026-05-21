@@ -8,7 +8,7 @@ import os
 import sys
 
 DB = os.path.join(os.path.dirname(__file__), "journal.db")
-XLSX = os.path.join(os.path.dirname(os.path.dirname(__file__)), "私法组审稿（2025—2026学年）.xlsx")
+XLSX = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "私法组审稿（2025—2026学年）.xlsx")
 
 def get_conn():
     conn = sqlite3.connect(DB)
