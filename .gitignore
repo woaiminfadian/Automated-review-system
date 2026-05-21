@@ -1,0 +1,37 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# IDE
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Databases
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.db
+state.db
+
+# Uploads & runtime
+uploads/
+email_staging/
+
+# Claude local settings
+.claude/settings.local.json
+.claude/settings.json
+
+# OS
+Thumbs.db

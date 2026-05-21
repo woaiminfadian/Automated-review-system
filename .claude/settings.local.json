@@ -1,7 +1,45 @@
 {
   "permissions": {
     "allow": [
-      "Bash(\"/Users/zhangruiming/Desktop/python/python环境/.venv/bin/python3\" -m unittest tests.test_workflow -v)"
+      "Bash(\"/Users/zhangruiming/Desktop/python/python环境/.venv/bin/python3\" -m unittest tests.test_workflow -v)",
+      "mcp__claude-ide-bridge__getBridgeStatus",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import flask; print\\('Flask', flask.__version__\\)\")",
+      "Bash(python3 -c \"import openpyxl; print\\('openpyxl', openpyxl.__version__\\)\")",
+      "Bash(pip3 install *)",
+      "Bash(uv tool *)",
+      "Bash(ls *.sqlite3)",
+      "Bash(python3 -c \"import sqlite3; print\\(sqlite3.sqlite_version\\)\")",
+      "Bash(python3 create_db.py)",
+      "Bash(uv run *)",
+      "Bash(FLASK_APP=webapp.py uv run flask run --host=127.0.0.1 --port=5000)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5000/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5000/submissions)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5000/authors)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5000/editors)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5000/assignments)",
+      "Bash(curl -s http://127.0.0.1:5000/editors)",
+      "Bash(pkill -f \"flask run\")",
+      "Bash(python3 import_xlsx.py)",
+      "Bash(lsof -ti:5000)",
+      "Bash(xargs kill -9)",
+      "Bash(FLASK_APP=webapp.py uv run flask run --debug)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5000/submissions/1)",
+      "Bash(curl -s http://127.0.0.1:5000/submissions)",
+      "Bash(python3 -c \"import sys,re; m=re.search\\(r'href=\\\\\"/submissions/\\(\\\\d+\\)\\\\\"', sys.stdin.read\\(\\)\\); print\\(m.group\\(1\\) if m else 'not found'\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5000/submissions/136)",
+      "mcp__claude-ide-bridge__captureScreenshot",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(chmod +x \"/Users/zhangruiming/Desktop/法大研究生学报/database/启动网页.command\")",
+      "Bash(python3 -c \"import py_compile; py_compile.compile\\('webapp.py', doraise=True\\)\")",
+      "Bash(pkill -f \"python3 webapp.py\")",
+      "Bash(python3 webapp.py)",
+      "Bash(curl -s -D - -o /dev/null -X POST -d \"name=张三&email=test@test.com\" http://127.0.0.1:5000/authors/1/edit)",
+      "Bash(curl -s -D - -o /dev/null -X POST -d \"name=李四&email=li@test.com&subjects=民法,商法\" http://127.0.0.1:5000/editors/1/edit)",
+      "Bash(curl -s http://127.0.0.1:5000/authors)",
+      "Bash(curl -sI https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js)",
+      "Bash(curl -s http://127.0.0.1:5000/)"
     ]
   }
 }

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}登录{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header text-center">学报管理系统登录</div>
+            <div class="card-body">
+                <div class="alert alert-info py-2 mb-3" style="font-size:13px">
+                    <i class="bi bi-info-circle me-1"></i>
+                    初次登录或新添加的编辑，默认密码为 <strong>123456</strong>，登录后请及时修改。
+                </div>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">姓名</label>
+                        <input type="text" name="name" class="form-control" placeholder="输入您的姓名" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">密码</label>
+                        <input type="password" name="password" class="form-control" placeholder="输入密码" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">登录</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
