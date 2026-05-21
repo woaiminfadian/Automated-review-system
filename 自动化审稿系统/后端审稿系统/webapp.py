@@ -4,7 +4,10 @@
 """
 import sqlite3, os, json, sys, shutil
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from pathlib import Path
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -950,6 +953,7 @@ def editor_review(aid):
         file_review = assign.get("file_review", "")
         file_annotated = assign.get("file_annotated", "")
         ensure_upload_dir()
+        from journal_automation.utils import sanitize_filename, ensure_unique_path
 
         if "file_review" in request.files:
             f = request.files["file_review"]
@@ -958,9 +962,12 @@ def editor_review(aid):
                 if ext in ALLOWED_EXT:
                     subdir = os.path.join(UPLOAD_DIR, f"review_{aid}")
                     os.makedirs(subdir, exist_ok=True)
-                    fname = f"审稿评分表{ext}"
-                    f.save(os.path.join(subdir, fname))
-                    file_review = f"uploads/review_{aid}/{fname}"
+                    safe_name = sanitize_filename(f.filename)
+                    if not safe_name.lower().endswith(ext):
+                        safe_name = safe_name + ext
+                    dst = ensure_unique_path(Path(subdir) / safe_name)
+                    f.save(str(dst))
+                    file_review = f"uploads/review_{aid}/{dst.name}"
 
         if "file_annotated" in request.files:
             f = request.files["file_annotated"]
@@ -969,9 +976,12 @@ def editor_review(aid):
                 if ext in ALLOWED_EXT:
                     subdir = os.path.join(UPLOAD_DIR, f"review_{aid}")
                     os.makedirs(subdir, exist_ok=True)
-                    fname = f"【批注版】{assign['title'][:20]}{ext}"
-                    f.save(os.path.join(subdir, fname))
-                    file_annotated = f"uploads/review_{aid}/{fname}"
+                    safe_name = sanitize_filename(f.filename)
+                    if not safe_name.lower().endswith(ext):
+                        safe_name = safe_name + ext
+                    dst = ensure_unique_path(Path(subdir) / safe_name)
+                    f.save(str(dst))
+                    file_annotated = f"uploads/review_{aid}/{dst.name}"
 
         now = datetime.now().strftime("%Y.%m.%d %H:%M")
         conn.execute("""
@@ -1013,6 +1023,21 @@ def _float_or_none(v):
 @app.route("/uploads/<path:filename>")
 @login_required
 def download_file(filename):
+    # Permission: admin can download any upload; editors only their own review files
+    if not current_user.is_admin:
+        import re
+        m = re.match(r'^review_(\d+)/', filename)
+        if m:
+            aid = int(m.group(1))
+            conn = get_conn()
+            owner = conn.execute("SELECT editor_id FROM assignments WHERE id=?", (aid,)).fetchone()
+            conn.close()
+            if not owner or owner[0] != current_user.id:
+                flash("无权下载此文件", "danger")
+                return redirect(url_for("editor_dashboard"))
+        else:
+            flash("无权下载此文件", "danger")
+            return redirect(url_for("editor_dashboard"))
     return send_from_directory(UPLOAD_DIR, filename)
 
 
@@ -1058,8 +1083,6 @@ def download_scoring_template():
         return redirect(url_for("editor_dashboard"))
     return send_from_directory(os.path.dirname(template_path), "审稿评分表.docx",
                                download_name="审稿评分表（模板）.docx", as_attachment=True)
-from flask import send_from_directory
-
 
 # ═══════════════════════════════════════════════════════
 # 邮件收稿 API
@@ -1279,21 +1302,49 @@ def api_email_import(staging_id):
     if attachments_info:
         final_dir = os.path.join(UPLOAD_DIR, f"submission_{sid}")
         os.makedirs(final_dir, exist_ok=True)
+        from journal_automation.utils import sanitize_filename, ensure_unique_path
+
         final_paths = []
+        has_original = False
         for att in attachments_info:
             src = os.path.join(DB_DIR, att["staged_path"])
-            if os.path.exists(src):
-                dst = os.path.join(final_dir, os.path.basename(att["staged_path"]))
-                shutil.move(src, dst)
-                final_paths.append(f"uploads/submission_{sid}/{os.path.basename(att['staged_path'])}")
+            if not os.path.exists(src):
+                continue
+            raw_name = att.get("filename") or os.path.basename(att["staged_path"])
+            safe_name = sanitize_filename(raw_name)
+            if not safe_name:
+                safe_name = "未命名附件"
+            # Preserve extension from source file
+            _, ext = os.path.splitext(src)
+            if ext and not safe_name.lower().endswith(ext.lower()):
+                safe_name = safe_name + ext
+            # Avoid name collisions
+            dst = ensure_unique_path(Path(final_dir) / safe_name)
+            shutil.move(src, str(dst))
+            rel_path = f"uploads/submission_{sid}/{dst.name}"
+            final_paths.append(rel_path)
+
+            # Determine file type
+            name_lower = safe_name.lower()
+            if '版权' in name_lower or '协议' in name_lower:
+                ftype = '著作权协议'
+            elif '查重' in name_lower:
+                ftype = '查重报告'
+            elif '修改说明' in name_lower:
+                ftype = '修改说明'
+            elif not has_original and ext.lower() in ('.doc', '.docx', '.pdf'):
+                ftype = '原稿'
+                has_original = True
+            else:
+                ftype = '附件'
+
+            conn.execute(
+                "INSERT INTO submission_files (submission_id, filename, file_path, file_type, source) VALUES (?,?,?,?,?)",
+                (sid, dst.name, rel_path, ftype, 'email'),
+            )
+
         if final_paths:
             conn.execute("UPDATE submissions SET file_path=? WHERE id=?", (final_paths[0], sid))
-        # Write all attachments to submission_files for structured tracking
-        for fp in final_paths:
-            conn.execute(
-                "INSERT INTO submission_files (submission_id, filename, file_path, file_type) VALUES (?,?,?,?)",
-                (sid, os.path.basename(fp), fp, "原稿"),
-            )
 
     conn.execute("UPDATE email_staging SET status='已录入' WHERE id=?", (staging_id,))
     log_activity(conn, "submission", sid, "邮件导入",

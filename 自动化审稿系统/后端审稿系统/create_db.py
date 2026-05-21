@@ -134,18 +134,15 @@ def create_tables(conn):
             submission_id   INTEGER NOT NULL REFERENCES submissions(id),
             filename        TEXT NOT NULL,
             file_path       TEXT NOT NULL,
-            file_type       TEXT DEFAULT '原稿',
-            uploaded_at     TEXT DEFAULT (datetime('now','localtime'))
+            file_type       TEXT DEFAULT '附件',
+            source          TEXT DEFAULT 'email',
+            created_at      TEXT DEFAULT (datetime('now','localtime'))
         );
 
         CREATE INDEX IF NOT EXISTS idx_submission_files_sub
             ON submission_files(submission_id);
     """)
 
-    conn.execute(
-        "INSERT INTO activity_log (entity_type, entity_id, action, detail) VALUES (?,?,?,?)",
-        (entity_type, entity_id, action, detail),
-    )
 
 
 def import_editors_from_config(conn):
