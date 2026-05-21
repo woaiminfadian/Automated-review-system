@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}稿件管理{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h4>稿件管理</h4>
+        <p class="text-muted">全部来稿记录 · 带审稿进度</p>
+    </div>
+    <a href="{{ url_for('submission_add') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> 录入新稿件</a>
+</div>
+
+<div class="card border-start border-4 border-primary shadow-sm">
+    <div class="card-body pb-2">
+        <form method="GET" class="row g-2">
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">全部状态</option>
+                    {% for s in statuses %}
+                    <option value="{{ s }}" {% if status_f == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="field" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">全部学科</option>
+                    {% for f in fields %}
+                    <option value="{{ f }}" {% if field_f == f %}selected{% endif %}>{{ f }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <div class="input-group input-group-sm">
+                    <input type="text" name="kw" class="form-control" placeholder="搜索标题/作者..." value="{{ kw }}">
+                    <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+                    {% if kw or status_f or field_f %}
+                    <a href="{{ url_for('submissions_list') }}" class="btn btn-outline-danger">清除</a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-start border-4 border-success shadow-sm">
+    <div class="card-body p-0">
+        {% if submissions %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:36px">ID</th>
+                        <th>标题</th>
+                        <th style="width:70px">学科</th>
+                        <th style="width:80px">收稿日期</th>
+                        <th style="width:180px">审稿进度</th>
+                        <th style="width:80px">状态</th>
+                        <th style="width:80px">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in submissions %}
+                    {% set p = s.progress_by_round %}
+                    {% set r_order = ['一审','二审','再审','终审','外审'] %}
+                    <tr class="clickable-row" onclick="window.location='{{ url_for('submission_detail', sid=s.id) }}'">
+                        <td class="text-muted">{{ s.id }}</td>
+                        <td>
+                            <a href="{{ url_for('submission_detail', sid=s.id) }}" class="text-decoration-none fw500">{{ s.title[:40] }}{% if s.title|length > 40 %}…{% endif %}</a>
+                            <div class="text-muted fs-small mt-1">{{ s.author1 or '-' }}{% if s.author2 %} / {{ s.author2 }}{% endif %}</div>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ s.field }}</span></td>
+                        <td class="text-muted fs-small">{{ s.received_date or '-' }}</td>
+                        <td>
+                            {% set has_progress = p.keys()|length > 0 %}
+                            {% if has_progress %}
+                            <div class="review-progress d-flex align-items-center gap-1">
+                                {% for r in r_order %}
+                                {% if r in p %}
+                                {% set entry = p[r] %}
+                                {% if entry.status in ('已通过',) or entry.result in ('通过','返修') %}
+                                {% set dot_cls = 'dot-green' %}
+                                {% set tip_cls = 'tip-green' %}
+                                {% elif entry.status in ('退稿',) or entry.result in ('退稿',) %}
+                                {% set dot_cls = 'dot-red' %}
+                                {% set tip_cls = 'tip-red' %}
+                                {% elif entry.status in ('返修',) or entry.result in ('返修',) %}
+                                {% set dot_cls = 'dot-orange' %}
+                                {% set tip_cls = 'tip-orange' %}
+                                {% elif entry.status in ('审稿中','待审','待确认') %}
+                                {% set dot_cls = 'dot-blue' %}
+                                {% set tip_cls = 'tip-blue' %}
+                                {% else %}
+                                {% set dot_cls = 'dot-gray' %}
+                                {% set tip_cls = 'tip-gray' %}
+                                {% endif %}
+                                <div class="progress-step" title="{{ entry.round }}: {{ entry.editor }} — {{ entry.result or entry.status }}">
+                                    <div class="step-dot {{ dot_cls }}"></div>
+                                    <div class="step-label">{{ r }}</div>
+                                    <div class="step-editor">{{ entry.editor[:2] }}{% if entry.editor|length > 2 %}…{% endif %}</div>
+                                </div>
+                                {% if not loop.last and r != r_order[-1] %}
+                                <div class="step-line"></div>
+                                {% endif %}
+                                {% else %}
+                                <div class="progress-step pending">
+                                    <div class="step-dot dot-empty"></div>
+                                    <div class="step-label text-muted">{{ r }}</div>
+                                </div>
+                                {% if not loop.last and r != r_order[-1] %}
+                                <div class="step-line dimmed"></div>
+                                {% endif %}
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <span class="text-muted fs-small">—</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge status-{{ s.status }} badge-status">{{ s.status }}</span></td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ url_for('submission_detail', sid=s.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                                <form method="POST" action="{{ url_for('submission_delete', sid=s.id) }}" style="display:inline" onsubmit="return confirm('确定删除该稿件？相关的派稿记录也将一并删除。')" onclick="event.stopPropagation()">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <p>暂无稿件</p>
+            <a href="{{ url_for('submission_add') }}" class="btn btn-primary btn-sm">录入第一篇稿件</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.review-progress { min-width: 0; }
+.progress-step {
+    display: flex; flex-direction: column; align-items: center;
+    position: relative; gap: 1px;
+    flex-shrink: 0;
+}
+.step-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid transparent; transition: transform .15s;
+}
+.progress-step:hover .step-dot { transform: scale(1.4); }
+.dot-green  { background: #10b981; border-color: #059669; }
+.dot-red    { background: #ef4444; border-color: #dc2626; }
+.dot-orange { background: #f59e0b; border-color: #d97706; }
+.dot-blue   { background: #3b82f6; border-color: #2563eb; }
+.dot-gray   { background: #94a3b8; border-color: #64748b; }
+.dot-empty  { background: #e2e8f0; border-color: #cbd5e1; }
+.step-label { font-size: 9px; white-space: nowrap; color: #475569; line-height: 1.1; }
+.step-editor { font-size: 8px; white-space: nowrap; color: #64748b; line-height: 1; }
+.step-line {
+    width: 14px; height: 2px; background: #cbd5e1;
+    align-self: center; margin-bottom: 10px; flex-shrink: 0;
+}
+.step-line.dimmed { background: #e2e8f0; }
+.progress-step.pending .step-label { color: #94a3b8; }
+</style>
+{% endblock %}

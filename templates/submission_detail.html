@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}稿件详情 #{{ sub.id }}{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h4>稿件详情 #{{ sub.id }}</h4>
+        <a href="{{ url_for('submissions_list') }}" class="text-muted text-decoration-none fs-small">← 返回稿件列表</a>
+    </div>
+    <div class="action-bar">
+        <a href="{{ url_for('submission_edit', sid=sub.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> 编辑</a>
+        <form method="POST" action="{{ url_for('submission_delete', sid=sub.id) }}" style="display:inline" onsubmit="return confirm('确定删除此稿件及相关派稿记录？')">
+            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> 删除</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- 稿件信息 -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">稿件信息  <span class="badge status-{{ sub.status }} badge-status ms-2">{{ sub.status }}</span></div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-4 detail-label">标题</div>
+                    <div class="col-8 detail-value">{{ sub.title }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4 detail-label">学科方向</div>
+                    <div class="col-8"><span class="badge bg-light text-dark">{{ sub.field }}</span></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4 detail-label">来稿性质</div>
+                    <div class="col-8">{{ sub.submission_type }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4 detail-label">收稿日期</div>
+                    <div class="col-8">{{ sub.received_date }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4 detail-label">排期</div>
+                    <div class="col-8">{{ sub.issue or '未安排' }}</div>
+                </div>
+                <div class="row mb-0">
+                    <div class="col-4 detail-label">备注</div>
+                    <div class="col-8">{{ sub.notes or '-' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 状态操作 -->
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-header">更新状态</div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('submission_update_status', sid=sub.id) }}">
+                    <div class="mb-2">
+                        <select name="status" class="form-select form-select-sm">
+                            {% for s in statuses %}
+                            <option value="{{ s }}" {% if s == sub.status %}selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-check"></i> 更新</button>
+                </form>
+                <hr>
+                <a href="{{ url_for('assignment_add') }}?sid={{ sub.id }}" class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-send"></i> 派稿</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 作者信息 -->
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-header">作者信息</div>
+            <div class="card-body">
+                <div class="mb-2"><strong>第一作者</strong></div>
+                <div class="mb-1 detail-value">{{ sub.a1_name }}</div>
+                <div class="mb-1 text-muted fs-small">{{ sub.a1_aff or '-' }}{% if sub.a1_grade %} · {{ sub.a1_grade }}{% endif %}</div>
+                <div class="mb-2 text-muted fs-small">{{ sub.a1_email or '-' }} {% if sub.a1_phone %}| {{ sub.a1_phone }}{% endif %}</div>
+                {% if sub.a2_name %}
+                <hr>
+                <div class="mb-2"><strong>第二作者</strong></div>
+                <div class="mb-1 detail-value">{{ sub.a2_name }}</div>
+                <div class="mb-1 text-muted fs-small">{{ sub.a2_aff or '-' }}{% if sub.a2_grade %} · {{ sub.a2_grade }}{% endif %}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 派稿历史 -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">派稿历史</div>
+            <div class="card-body p-0">
+                {% if assigns %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th>轮次</th><th>编辑</th><th>邮箱</th><th>派稿日期</th><th>状态</th><th>结果</th><th>结果日期</th><th>意见摘要</th></tr></thead>
+                        <tbody>
+                            {% for a in assigns %}
+                            <tr>
+                                <td><span class="badge bg-light text-dark">{{ a.round }}</span></td>
+                                <td>{{ a.editor_name }}</td>
+                                <td class="text-muted">{{ a.editor_email or '-' }}</td>
+                                <td class="text-muted">{{ a.assigned_date }}</td>
+                                <td><span class="badge badge-status bg-secondary">{{ a.status }}</span></td>
+                                <td>{{ a.result or '-' }}</td>
+                                <td class="text-muted">{{ a.result_date or '-' }}</td>
+                                <td class="text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.opinion_summary or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state py-3"><p class="mb-0">暂无派稿记录</p></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
