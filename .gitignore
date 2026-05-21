@@ -51,10 +51,10 @@ email_staging/
 私法组审稿*.xlsx
 审稿评分表.docx
 
-# 自动化数据（邮件原文、草稿、问题记录均为涉密）
-.automation/raw_mail/
-.automation/drafts/
-.automation/issues/
-.automation/*.sqlite3
-.automation/*.sqlite3-*
+# 自动化数据（邮件原文、草稿、问题记录均为涉密） — 位于自动化审稿系统/
+自动化审稿系统/.automation/raw_mail/
+自动化审稿系统/.automation/drafts/
+自动化审稿系统/.automation/issues/
+自动化审稿系统/.automation/*.sqlite3
+自动化审稿系统/.automation/*.sqlite3-*
 Thumbs.db
