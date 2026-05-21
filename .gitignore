@@ -34,4 +34,27 @@ email_staging/
 .claude/settings.json
 
 # OS
+
+# 涉密内容 — 来稿、审稿意见、邮件原文、数据库
+0.*/
+1.*/
+2.*/
+3.*/
+4.*/
+5.*/
+6.*/
+7.*/
+8.*/
+9.*/
+临时文件/
+交接.docx
+私法组审稿*.xlsx
+审稿评分表.docx
+
+# 自动化数据（邮件原文、草稿、问题记录均为涉密）
+.automation/raw_mail/
+.automation/drafts/
+.automation/issues/
+.automation/*.sqlite3
+.automation/*.sqlite3-*
 Thumbs.db
