@@ -5,8 +5,9 @@
 ## 功能概览
 
 - **邮件收稿** — IMAP 自动抓取投稿邮件，AI 辅助识别标题/学科/作者/联系方式，暂存待主编确认后一键录入
-- **稿件管理** — 稿件全生命周期追踪（待处理 → 派稿中 → 审稿中 → 返修中 → 已录用/已退稿）
-- **派稿与审稿** — 主编派稿给编辑，编辑在线填写评分、审稿意见，上传审稿评分表和批注版附件
+- **审稿流程主线** — 一审 → 二审 → 三审，每轮派稿给 1-2 名编辑，主编汇总决定（通过/返修/退稿），支持作者返修稿上传与回复通知
+- **稿件管理** — 稿件全生命周期追踪，粗状态（status）+ 细阶段（workflow_stage）双重标识
+- **派稿与审稿** — 主编按轮次派稿给对应方向编辑，编辑在线填写评分、审稿意见，上传审稿评分表和批注版附件
 - **作者与编辑管理** — 作者信息库、编辑账号与权限管理
 - **文件安全** — 基于角色的附件下载权限控制（管理员全权限，编辑仅限本人审稿稿件）
 - **操作日志** — 全流程操作记录，可追溯
@@ -29,6 +30,7 @@
 │   ├── 后端审稿系统/           # Flask 主程序、数据库、邮件解析
 │   │   ├── webapp.py           # Web 管理系统入口
 │   │   ├── create_db.py        # 数据库初始化
+│   │   ├── migrate_v5_workflow.py  # v5 数据库迁移（审稿流程主线）
 │   │   ├── journal.db          # SQLite 数据库
 │   │   ├── uploads/            # 上传文件与邮件附件
 │   │   ├── journal_automation/ # 投稿自动处理模块
@@ -99,14 +101,27 @@ HOST=0.0.0.0 PORT=5000 python3 webapp.py
 
 | 表 | 用途 |
 |---|---|
-| `submissions` | 稿件信息 |
+| `submissions` | 稿件信息（含 workflow_stage、current_round、final_decision） |
 | `authors` | 作者信息 |
 | `editors` | 编辑账号与权限 |
-| `assignments` | 派稿与审稿记录（含评分、意见） |
+| `assignments` | 派稿与审稿记录（含轮次、编辑建议、是否返回） |
+| `review_rounds` | 审稿轮次（一审/二审/三审，含主编决定、作者回复状态） |
+| `author_notifications` | 作者通知记录（退稿/返修/录用通知） |
 | `email_staging` | 邮件暂存箱（待核对后录入） |
 | `email_sync_state` | IMAP 同步游标 |
 | `submission_files` | 稿件附件（多文件支持） |
 | `activity_log` | 操作日志 |
+
+## 数据库迁移
+
+重大结构变更通过迁移脚本完成，幂等可重复运行：
+
+```bash
+cd 自动化审稿系统/后端审稿系统
+python3 migrate_v5_workflow.py  # v5: 新增 review_rounds、author_notifications 表，审稿流程主线优化
+```
+
+迁移前自动备份 `journal.db → journal.db.bak.v5`。
 
 ## 运行测试
 

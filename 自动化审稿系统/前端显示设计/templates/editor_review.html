@@ -25,7 +25,11 @@
             </div>
             <div class="col-md-2">
                 <span class="text-muted fs-small">作者:</span>
+                {% if assign.anonymized %}
                 {{ assign.author_name or '-' }}
+                {% else %}
+                <span class="text-warning">待匿名</span>
+                {% endif %}
             </div>
             <div class="col-md-2">
                 <span class="text-muted fs-small">派稿日:</span>
@@ -34,6 +38,12 @@
         </div>
     </div>
 </div>
+
+{% if not assign.anonymized %}
+<div class="alert alert-warning py-1 mb-2" style="font-size:12px">
+    <i class="bi bi-eye-slash"></i> 此稿件尚未匿名化，主编将在派稿后上传匿名稿。
+</div>
+{% endif %}
 
 {% if assign.status in ('已返回', '已通过', '返修', '退稿') and assign.score_total is not none %}
 <!-- 已提交的审稿结果（只读） -->
@@ -157,8 +167,10 @@
                 <div class="btn-group btn-group-sm" role="group">
                     <input type="radio" class="btn-check" name="review_opinion" value="录用" id="op_accept" {% if assign.review_opinion == '录用' %}checked{% endif %}>
                     <label class="btn btn-outline-success" for="op_accept">录用</label>
+                    {% if assign.round != '三审' %}
                     <input type="radio" class="btn-check" name="review_opinion" value="修改" id="op_revise" {% if assign.review_opinion == '修改' %}checked{% endif %}>
                     <label class="btn btn-outline-warning" for="op_revise">修改后录用/再审</label>
+                    {% endif %}
                     <input type="radio" class="btn-check" name="review_opinion" value="退稿" id="op_reject" {% if assign.review_opinion == '退稿' %}checked{% endif %}>
                     <label class="btn btn-outline-danger" for="op_reject">退稿</label>
                 </div>

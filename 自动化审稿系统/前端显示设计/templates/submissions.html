@@ -60,6 +60,7 @@
                         <th>标题 / 作者</th>
                         <th style="width:70px">学科</th>
                         <th style="width:80px">收稿日期</th>
+                        <th style="width:110px">当前阶段</th>
                         <th style="width:170px">审稿进度</th>
                         <th style="width:72px">状态</th>
                         <th style="width:100px">操作</th>
@@ -68,7 +69,7 @@
                 <tbody>
                     {% for s in submissions %}
                     {% set p = s.progress_by_round %}
-                    {% set r_order = ['一审','二审','再审','终审','外审'] %}
+                    {% set r_order = ['一审','二审','三审'] %}
                     <tr>
                         <td class="text-muted" style="font-size:12px">{{ s.id }}</td>
                         <td>
@@ -80,22 +81,24 @@
                         </td>
                         <td class="text-muted fs-small">{{ s.received_date or '-' }}</td>
                         <td>
+                            <span class="badge bg-primary bg-opacity-10 text-primary" style="font-size:10px">{{ s.workflow_stage or '待匿名' }}</span>
+                        </td>
+                        <td>
                             {% set has_progress = p.keys()|length > 0 %}
                             {% if has_progress %}
-                            <div class="review-progress d-flex align-items-center gap-1">
+                            <div class="review-progress" style="font-size:10px">
                                 {% for r in r_order %}
                                 {% if r in p %}
-                                {% set entry = p[r] %}
-                                {% set dot_cls = 'dot-green' if entry.status in ('已通过',) or entry.result in ('通过','返修') else 'dot-red' if entry.status in ('退稿',) or entry.result in ('退稿',) else 'dot-orange' if entry.status in ('返修',) or entry.result in ('返修',) else 'dot-blue' if entry.status in ('审稿中','待审','待确认') else 'dot-gray' %}
-                                <div class="progress-step" title="{{ entry.round }}: {{ entry.editor }} — {{ entry.result or entry.status }}">
-                                    <div class="step-dot {{ dot_cls }}"></div>
-                                    <div class="step-label">{{ r }}</div>
-                                    <div class="step-editor">{{ entry.editor[:2] }}{% if entry.editor|length > 2 %}…{% endif %}</div>
-                                </div>
-                                {% else %}
-                                <div class="progress-step pending">
-                                    <div class="step-dot dot-empty"></div>
-                                    <div class="step-label">{{ r }}</div>
+                                {% set entries = p[r] %}
+                                <div class="mb-1">
+                                    <span class="fw500">{{ r }}:</span>
+                                    {% for entry in entries %}
+                                    <span class="
+                                        {% if entry.status in ('已返回','已通过') or entry.result in ('通过',) %}text-success
+                                        {% elif entry.status in ('退稿',) or entry.result in ('退稿',) %}text-danger
+                                        {% elif entry.status in ('返修',) or entry.result in ('返修',) %}text-warning
+                                        {% else %}text-secondary{% endif %}">{{ entry.editor[:3] }}{% if entry.editor|length > 3 %}…{% endif %}{% if entry.returned %}<i class="bi bi-check-circle-fill ms-0" style="font-size:8px"></i>{% endif %}</span>{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
                                 </div>
                                 {% endif %}
                                 {% endfor %}

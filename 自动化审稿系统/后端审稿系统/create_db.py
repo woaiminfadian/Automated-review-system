@@ -46,7 +46,14 @@ def create_tables(conn):
             file_path       TEXT,
             notes           TEXT,
             created_at      TEXT DEFAULT (datetime('now','localtime')),
-            updated_at      TEXT DEFAULT (datetime('now','localtime'))
+            updated_at      TEXT DEFAULT (datetime('now','localtime')),
+            workflow_stage  TEXT DEFAULT '待匿名',
+            current_round   TEXT DEFAULT '一审',
+            final_decision  TEXT,
+            needs_author_reply INTEGER DEFAULT 0,
+            author_replied_at TEXT,
+            anonymized      INTEGER DEFAULT 0,
+            anonymous_file_id INTEGER
         );
 
         CREATE TABLE IF NOT EXISTS editors (
@@ -85,7 +92,10 @@ def create_tables(conn):
             file_annotated  TEXT,
             reviewed_at     TEXT,
             notes           TEXT,
-            created_at      TEXT DEFAULT (datetime('now','localtime'))
+            created_at      TEXT DEFAULT (datetime('now','localtime')),
+            review_round_id INTEGER REFERENCES review_rounds(id),
+            editor_recommendation TEXT,
+            returned        INTEGER DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS activity_log (
@@ -136,11 +146,52 @@ def create_tables(conn):
             file_path       TEXT NOT NULL,
             file_type       TEXT DEFAULT '附件',
             source          TEXT DEFAULT 'email',
-            created_at      TEXT DEFAULT (datetime('now','localtime'))
+            created_at      TEXT DEFAULT (datetime('now','localtime')),
+            round_name      TEXT,
+            version_label   TEXT,
+            uploaded_by_role TEXT,
+            related_assignment_id INTEGER
         );
 
         CREATE INDEX IF NOT EXISTS idx_submission_files_sub
             ON submission_files(submission_id);
+
+        CREATE TABLE IF NOT EXISTS review_rounds (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+            round_name TEXT NOT NULL,
+            status TEXT DEFAULT '未开始',
+            chief_decision TEXT,
+            decision_date TEXT,
+            author_reply_status TEXT DEFAULT '无需回复',
+            author_replied_at TEXT,
+            revision_due_at TEXT,
+            notes TEXT,
+            created_at TEXT DEFAULT (datetime('now','localtime')),
+            updated_at TEXT DEFAULT (datetime('now','localtime'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_review_rounds_sub
+            ON review_rounds(submission_id);
+        CREATE INDEX IF NOT EXISTS idx_review_rounds_status
+            ON review_rounds(status);
+
+        CREATE TABLE IF NOT EXISTS author_notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+            review_round_id INTEGER REFERENCES review_rounds(id),
+            notification_type TEXT,
+            result_label TEXT,
+            subject TEXT,
+            body TEXT,
+            draft_path TEXT,
+            status TEXT DEFAULT '草稿',
+            sent_at TEXT,
+            created_at TEXT DEFAULT (datetime('now','localtime'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_author_notif_sub
+            ON author_notifications(submission_id);
     """)
 
 

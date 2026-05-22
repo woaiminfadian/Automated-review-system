@@ -5,7 +5,11 @@
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h4>稿件详情 #{{ sub.id }}</h4>
+        {% if request.args.get('back') == 'assignments' %}
+        <a href="{{ url_for('assignments_list') }}" class="text-muted text-decoration-none fs-small">← 返回派稿管理</a>
+        {% else %}
         <a href="{{ url_for('submissions_list') }}" class="text-muted text-decoration-none fs-small">← 返回稿件列表</a>
+        {% endif %}
     </div>
     <div class="action-bar">
         <a href="{{ url_for('submission_edit', sid=sub.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i> 编辑</a>
@@ -17,8 +21,8 @@
 </div>
 
 <!-- Inline status update -->
-<div class="d-flex align-items-center gap-2 mb-3 p-2 rounded" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06)">
-    <span class="fw600" style="font-size:13px">状态:</span>
+<div class="d-flex align-items-center gap-2 mb-2 p-2 rounded" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+    <span class="fw600" style="font-size:13px">粗状态:</span>
     <form method="POST" action="{{ url_for('submission_update_status', sid=sub.id) }}" class="d-flex align-items-center gap-2">
         <select name="status" class="form-select form-select-sm" style="width:130px">
             {% for s in statuses %}
@@ -31,6 +35,41 @@
     <span class="ms-3 text-muted" style="font-size:12px">| 附件: {{ submission_files|length }} 个</span>
     {% endif %}
 </div>
+
+<!-- Workflow stage banner -->
+<div class="d-flex align-items-center gap-2 mb-3 p-2 rounded" style="background:#f0f7ff;box-shadow:0 1px 3px rgba(0,0,0,.06);border-left:4px solid #0d6efd">
+    <span class="fw600" style="font-size:13px">当前阶段:</span>
+    <span class="badge bg-primary" style="font-size:13px">{{ sub.workflow_stage or '待匿名' }}</span>
+    <span class="text-muted" style="font-size:12px">| 审稿轮次: {{ sub.current_round or '一审' }}</span>
+    {% if sub.final_decision %}
+    <span class="badge bg-success ms-2">{{ sub.final_decision }}</span>
+    {% endif %}
+    <span class="ms-auto d-flex gap-1">
+    {% for act in next_actions %}
+        <a href="{{ act.url }}" class="btn btn-sm btn-{{ act.kind }} py-0">{{ act.label }}</a>
+    {% endfor %}
+    </span>
+</div>
+
+<!-- 上传匿名稿（待匿名阶段） -->
+{% if sub.workflow_stage == '待匿名' %}
+<div class="mb-3">
+    <div class="card" style="border:2px dashed #0d6efd;background:#f0f7ff">
+        <div class="card-body py-2">
+            <div class="d-flex align-items-center gap-3">
+                <div>
+                    <span class="fw600" style="font-size:14px"><i class="bi bi-eye-slash"></i> 匿名化操作</span>
+                    <div class="text-muted" style="font-size:11px">上传去除作者姓名、单位、致谢等身份信息的匿名稿（支持 .docx/.pdf）</div>
+                </div>
+                <form method="POST" action="{{ url_for('anonymize_submission', sid=sub.id) }}" enctype="multipart/form-data" class="d-flex align-items-center gap-2 ms-auto">
+                    <input type="file" name="anonymous_file" class="form-control form-control-sm" style="width:280px" accept=".docx,.doc,.pdf" required>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-upload"></i> 上传匿名稿</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="row g-3">
     <!-- 稿件信息 + 作者信息 -->
@@ -92,6 +131,7 @@
                     {% for sf in submission_files %}
                     <a href="{{ url_for('download_submission_file', sid=sub.id, fid=sf.id) }}" class="btn btn-sm btn-outline-primary" title="{{ sf.file_path }}">
                         <i class="bi bi-download"></i> {{ sf.filename }}
+                        {% if sf.version_label %}<span class="badge bg-info text-dark ms-1" style="font-size:10px">{{ sf.version_label }}</span>{% endif %}
                         <span class="badge bg-light text-dark ms-1" style="font-size:10px">{{ sf.file_type }}</span>
                     </a>
                     {% endfor %}
@@ -105,6 +145,136 @@
                 {% else %}
                 <span class="text-muted fs-small">暂无附件</span>
                 {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 审稿轮次卡片 -->
+    <div class="col-12">
+        <h6 class="mb-2 fw600">审稿轮次</h6>
+        <div class="row g-2 mb-2">
+        {% for rr in review_rounds %}
+        {% set round_assigns = assignments_by_round.get(rr.round_name, []) %}
+        {% set all_returned = namespace(value=true) %}
+        {% for a in round_assigns %}{% if not a.returned %}{% set all_returned.value = false %}{% endif %}{% endfor %}
+        <div class="col-md-4">
+            <div class="card" style="margin-bottom:8px;{% if rr.chief_decision == '通过' %}border-left:3px solid #198754{% elif rr.chief_decision == '返修' %}border-left:3px solid #fd7e14{% elif rr.chief_decision == '退稿' %}border-left:3px solid #dc3545{% elif all_returned.value %}border-left:3px solid #0d6efd{% endif %}">
+                <div class="card-header py-1 d-flex justify-content-between align-items-center" style="font-size:13px">
+                    <span class="fw600">{{ rr.round_name }}</span>
+                    <span class="badge {% if rr.status == '已完成' %}bg-success{% elif rr.status == '待主编决定' %}bg-warning text-dark{% elif rr.status == '待回复作者' %}bg-info text-dark{% elif rr.status == '待作者返修' %}bg-secondary{% else %}bg-light text-dark{% endif %}" style="font-size:11px">{{ rr.status }}</span>
+                </div>
+                <div class="card-body py-1" style="font-size:12px">
+                    {% if round_assigns %}
+                    {% for a in round_assigns %}
+                    <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
+                        <div>
+                            <span class="fw500">{{ a.editor_name }}</span>
+                            <span class="badge badge-status ms-1
+                                {% if a.status == '待审' %}bg-secondary text-white
+                                {% elif a.returned %}bg-info text-dark
+                                {% else %}bg-light text-dark{% endif %}" style="font-size:10px">{{ a.status }}</span>
+                            {% if a.editor_recommendation %}
+                            <span class="badge ms-1
+                                {% if a.editor_recommendation == '通过' %}status-已录用
+                                {% elif a.editor_recommendation == '返修' %}status-返修中
+                                {% elif a.editor_recommendation == '退稿' %}status-已退稿
+                                {% endif %}" style="font-size:10px">{{ a.editor_recommendation }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-muted" style="font-size:10px">
+                            {% if a.score_total %}评分: {{ a.score_total }}{% endif %}
+                            {% if a.file_review %}<a href="{{ url_for('download_file', filename=a.file_review.replace('uploads/', '')) }}" class="ms-1" title="评分表"><i class="bi bi-file-earmark-text"></i></a>{% endif %}
+                            {% if a.file_annotated %}<a href="{{ url_for('download_file', filename=a.file_annotated.replace('uploads/', '')) }}" class="ms-1" title="批注版"><i class="bi bi-file-earmark-pdf"></i></a>{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-muted py-1">暂无编辑分配</div>
+                    {% endif %}
+
+                    <!-- 主编决定区域 -->
+                    {% if rr.status == '待主编决定' %}
+                    <form method="POST" action="{{ url_for('chief_decide', sid=sub.id, rid=rr.id) }}" class="mt-2 p-2 rounded" style="background:#fff8e1">
+                        <div class="fw600 mb-1" style="font-size:11px">汇总决定:</div>
+                        <div class="d-flex gap-1 align-items-center">
+                            <select name="chief_decision" class="form-select form-select-sm" style="width:90px;font-size:11px">
+                                {% for d in chief_decisions %}{% if rr.round_name != '三审' or d != '返修' %}
+                                <option value="{{ d }}">{{ d }}</option>
+                                {% endif %}{% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-warning py-0" style="font-size:11px">确认</button>
+                        </div>
+                        <textarea name="notes" class="form-control form-control-sm mt-1" style="font-size:11px" placeholder="备注..."></textarea>
+                    </form>
+                    {% elif rr.chief_decision %}
+                    <div class="mt-1 p-1 rounded" style="background:#f8f9fa;font-size:11px">
+                        <span class="fw600">主编决定:</span>
+                        <span class="badge
+                            {% if rr.chief_decision == '通过' %}bg-success
+                            {% elif rr.chief_decision == '返修' %}bg-warning text-dark
+                            {% elif rr.chief_decision == '退稿' %}bg-danger
+                            {% endif %}">{{ rr.chief_decision }}</span>
+                        {% if rr.decision_date %}<span class="text-muted ms-1">{{ rr.decision_date }}</span>{% endif %}
+                        {% if rr.notes %}<div class="text-muted">{{ rr.notes }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- 回复作者 -->
+                    {% if rr.status == '待回复作者' %}
+                    <form method="POST" action="{{ url_for('author_reply_mark', sid=sub.id, rid=rr.id) }}" class="mt-2">
+                        <button type="submit" class="btn btn-sm btn-success py-0 w-100" style="font-size:11px">标记已回复作者</button>
+                    </form>
+                    {% elif rr.author_reply_status == '已发送' %}
+                    <div class="mt-1 text-success" style="font-size:11px"><i class="bi bi-check-circle"></i> 已回复作者 ({{ rr.author_replied_at[:10] }})</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        </div>
+    </div>
+
+    <!-- 上传返修稿 -->
+    {% if sub.workflow_stage == '待作者返修' %}
+    <div class="col-12">
+        <div class="card mb-2" style="border:1px dashed #fd7e14">
+            <div class="card-body py-2">
+                <form method="POST" action="{{ url_for('revision_upload', sid=sub.id) }}" enctype="multipart/form-data" class="d-flex align-items-center gap-2">
+                    <span class="fw600" style="font-size:13px">上传返修稿:</span>
+                    <input type="file" name="revision_file" class="form-control form-control-sm" style="width:300px">
+                    <button type="submit" class="btn btn-sm btn-warning">上传并推进流程</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 时间线 -->
+    <div class="col-12">
+        <h6 class="mb-2 fw600">操作时间线</h6>
+        <div class="card" style="margin-bottom:12px">
+            <div class="card-body py-2">
+                <div style="font-size:12px">
+                    <div class="d-flex gap-2 mb-1"><span class="text-muted" style="width:100px">{{ sub.created_at[:10] or sub.received_date[:10] }}</span><span>稿件录入</span></div>
+                    {% for rr in review_rounds %}
+                    {% for a in assignments_by_round.get(rr.round_name, []) %}
+                    {% if a.assigned_date %}
+                    <div class="d-flex gap-2 mb-1"><span class="text-muted" style="width:100px">{{ a.assigned_date[:10] }}</span><span>{{ rr.round_name }}派稿 → {{ a.editor_name }}</span></div>
+                    {% endif %}
+                    {% if a.reviewed_at %}
+                    <div class="d-flex gap-2 mb-1"><span class="text-muted" style="width:100px">{{ a.reviewed_at[:10] }}</span><span>{{ a.editor_name }} 提交{{ rr.round_name }}审稿意见 (建议{{ a.editor_recommendation or '-' }})</span></div>
+                    {% endif %}
+                    {% endfor %}
+                    {% if rr.chief_decision %}
+                    <div class="d-flex gap-2 mb-1"><span class="text-muted" style="width:100px">{{ rr.decision_date[:10] or '-' }}</span><span class="fw500">主编{{ rr.round_name }}决定: {{ rr.chief_decision }}</span></div>
+                    {% endif %}
+                    {% endfor %}
+                    {% for n in author_notifications %}
+                    {% if n.status == '已发送' %}
+                    <div class="d-flex gap-2 mb-1"><span class="text-muted" style="width:100px">{{ n.sent_at[:10] or '-' }}</span><span>回复作者: {{ n.result_label }}</span></div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>

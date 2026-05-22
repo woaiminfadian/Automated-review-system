@@ -60,7 +60,7 @@
                         <td class="text-muted" style="font-size:12px">{{ a.id }}</td>
                         <td><span class="badge bg-light text-dark">{{ a.round }}</span></td>
                         <td class="fw500">{{ a.editor_name }}</td>
-                        <td><a href="{{ url_for('submission_detail', sid=a.sid) }}" class="text-decoration-none text-ellipsis" style="max-width:160px" title="{{ a.title }}">{{ a.title[:28] }}{% if a.title|length > 28 %}…{% endif %}</a></td>
+                        <td><a href="{{ url_for('submission_detail', sid=a.sid, back='assignments') }}" class="text-decoration-none text-ellipsis" style="max-width:160px" title="{{ a.title }}">{{ a.title[:28] }}{% if a.title|length > 28 %}…{% endif %}</a></td>
                         <td><span class="badge bg-light text-dark">{{ a.field }}</span></td>
                         <td class="text-muted">{{ a.author_name or '-' }}</td>
                         <td class="text-muted fs-small">{{ a.assigned_date }}</td>
@@ -73,10 +73,18 @@
                                 {% elif a.status == '退稿' %}status-已退稿
                                 {% else %}bg-secondary{% endif %}">{{ a.status }}</span>
                         </td>
-                        <td>{% if a.result == '通过' %}<span class="badge status-已录用">通过</span>
+                        <td>
+                            {% if a.editor_recommendation %}
+                            <span class="badge
+                                {% if a.editor_recommendation == '通过' %}status-已录用
+                                {% elif a.editor_recommendation == '返修' %}status-返修中
+                                {% elif a.editor_recommendation == '退稿' %}status-已退稿
+                                {% endif %}">{{ a.editor_recommendation }}</span>
+                            {% elif a.result == '通过' %}<span class="badge status-已录用">通过</span>
                             {% elif a.result == '返修' %}<span class="badge status-返修中">返修</span>
                             {% elif a.result == '退稿' %}<span class="badge status-已退稿">退稿</span>
-                            {% else %}{{ a.result or '-' }}{% endif %}</td>
+                            {% else %}{{ a.result or '-' }}{% endif %}
+                        </td>
                         <td>
                             {% if a.file_review %}
                             <a href="{{ url_for('download_file', filename=a.file_review.replace('uploads/', '')) }}" class="btn-icon btn-sm btn-outline-primary" title="评分表"><i class="bi bi-file-earmark-text"></i></a>
@@ -88,7 +96,7 @@
                         </td>
                         <td>
                             <div class="d-flex gap-1">
-                                <a href="{{ url_for('submission_detail', sid=a.sid) }}" class="btn-icon btn-sm btn-outline-secondary" title="查看稿件"><i class="bi bi-eye"></i></a>
+                                <a href="{{ url_for('submission_detail', sid=a.sid, back='assignments') }}" class="btn-icon btn-sm btn-outline-secondary" title="查看稿件"><i class="bi bi-eye"></i></a>
                                 <button type="button" class="btn-icon btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#updateAssignModal{{ a.id }}" title="更新结果"><i class="bi bi-pencil"></i></button>
                             </div>
                         </td>

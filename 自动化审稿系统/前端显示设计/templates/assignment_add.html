@@ -18,7 +18,7 @@
                         <select name="submission_id" id="submissionSelect" class="form-select form-select-sm" required>
                             <option value="">请选择稿件</option>
                             {% for p in pend %}
-                            <option value="{{ p.id }}" data-field="{{ p.field }}" data-title="{{ p.title }}" data-author="{{ p.author1 or '未知' }}" data-status="{{ p.status }}"
+                            <option value="{{ p.id }}" data-field="{{ p.field }}" data-title="{{ p.title }}" data-author="{{ p.author1 or '未知' }}" data-status="{{ p.status }}" data-workflow="{{ p.workflow_stage or '待匿名' }}" data-current-round="{{ p.current_round or '一审' }}"
                                 {% if request.args.get('sid')|string == p.id|string %}selected{% endif %}>
                                 [#{{ p.id }}] {{ p.title[:50] }} — {{ p.field }} — {{ p.author1 or '未知' }}
                             </option>
@@ -35,7 +35,8 @@
                         <div><span class="text-muted">标题:</span> <span id="summaryTitle"></span></div>
                         <div><span class="text-muted">作者:</span> <span id="summaryAuthor"></span></div>
                         <div><span class="text-muted">学科:</span> <span id="summaryField"></span></div>
-                        <div><span class="text-muted">状态:</span> <span id="summaryStatus"></span></div>
+                        <div><span class="text-muted">粗状态:</span> <span id="summaryStatus"></span></div>
+                        <div><span class="text-muted">流程阶段:</span> <span id="summaryWorkflow" class="badge bg-primary bg-opacity-10 text-primary"></span></div>
                     </div>
 
                     <!-- 编辑选择 -->
@@ -58,7 +59,7 @@
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label" style="font-size:13px">审稿轮次</label>
-                            <select name="round" class="form-select form-select-sm">
+                            <select name="round" id="roundSelect" class="form-select form-select-sm">
                                 {% for r in rounds %}
                                 <option value="{{ r }}">{{ r }}</option>
                                 {% endfor %}
@@ -69,6 +70,7 @@
                             <input type="text" name="assigned_date" class="form-control form-control-sm" placeholder="YYYY.MM.DD (默认今天)">
                         </div>
                     </div>
+                    <div id="roundHint" class="text-muted fs-small mb-2" style="display:none"></div>
 
                     <button type="submit" class="btn btn-primary" id="submitBtn"><i class="bi bi-send"></i> 派稿</button>
                     <span id="submitHint" class="text-muted fs-small ms-2"></span>
@@ -119,7 +121,7 @@ function selectSubmission(sid) {
     document.querySelectorAll('.pend-row').forEach(r => { if (r.dataset.sid === sid) r.style.background = '#f0f7ff'; });
 }
 
-// On submission change: show summary, filter editors
+// On submission change: show summary, filter editors, set round
 document.getElementById('submissionSelect').addEventListener('change', function() {
     var opt = this.options[this.selectedIndex];
     var summary = document.getElementById('submissionSummary');
@@ -128,11 +130,30 @@ document.getElementById('submissionSelect').addEventListener('change', function(
         document.getElementById('summaryAuthor').textContent = opt.dataset.author || '';
         document.getElementById('summaryField').textContent = opt.dataset.field || '';
         document.getElementById('summaryStatus').textContent = opt.dataset.status || '';
+        document.getElementById('summaryWorkflow').textContent = opt.dataset.workflow || '';
         summary.style.display = 'block';
         filterEditors(opt.dataset.field || '');
+        // 默认轮次 = 稿件当前轮次
+        var curRound = opt.dataset.currentRound || '一审';
+        var roundSelect = document.getElementById('roundSelect');
+        for (var i = 0; i < roundSelect.options.length; i++) {
+            if (roundSelect.options[i].value === curRound) {
+                roundSelect.selectedIndex = i;
+                break;
+            }
+        }
+        // 轮次提示
+        var hint = document.getElementById('roundHint');
+        hint.style.display = 'block';
+        if (curRound === '一审') {
+            hint.innerHTML = '<i class="bi bi-info-circle"></i> 一审建议派 1 名编辑';
+        } else {
+            hint.innerHTML = '<i class="bi bi-info-circle"></i> ' + curRound + '建议派 2 名编辑';
+        }
     } else {
         summary.style.display = 'none';
         filterEditors('');
+        document.getElementById('roundHint').style.display = 'none';
     }
 });
 

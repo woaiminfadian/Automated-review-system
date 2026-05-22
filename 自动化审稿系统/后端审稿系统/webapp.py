@@ -32,8 +32,14 @@ FIELDS = [
     "法律史", "其他",
 ]
 STATUSES = ["待处理", "派稿中", "审稿中", "返修中", "已录用", "已退稿", "作者撤稿"]
-ROUNDS = ["一审", "二审", "再审", "终审", "外审"]
+ROUNDS = ["一审", "二审", "三审"]
 ASSIGN_STATUSES = ["待审", "审稿中", "已返回", "已通过", "返修", "退稿", "待确认"]
+WORKFLOW_STAGES = [
+    "待匿名", "待派一审", "一审中", "待一审决定", "待一审回复作者",
+    "待作者返修", "待派二审", "二审中", "待二审决定", "待二审回复作者",
+    "待派三审", "三审中", "待三审决定", "已通过三审", "已退稿", "作者撤稿",
+]
+CHIEF_DECISIONS = ["通过", "返修", "退稿"]
 ALLOWED_EXT = {".docx", ".doc", ".pdf"}
 DEFAULT_EDITOR_PASSWORD = os.environ.get("DEFAULT_EDITOR_PASSWORD", "123456")
 
@@ -95,6 +101,162 @@ def log_activity(conn, entity_type, entity_id, action, detail=""):
         "INSERT INTO activity_log (entity_type, entity_id, action, detail) VALUES (?,?,?,?)",
         (entity_type, entity_id, action, detail),
     )
+
+
+# ── 审稿流程 Helper ─────────────────────────────────
+
+def get_or_create_review_round(conn, submission_id, round_name):
+    """获取或创建 review_round，返回 id。保证同一 (submission_id, round_name) 只有一条记录。"""
+    row = conn.execute(
+        "SELECT id FROM review_rounds WHERE submission_id=? AND round_name=?",
+        (submission_id, round_name),
+    ).fetchone()
+    if row:
+        return row["id"]
+    cur = conn.execute(
+        "INSERT INTO review_rounds (submission_id, round_name, status) VALUES (?,?,?)",
+        (submission_id, round_name, "未开始"),
+    )
+    return cur.lastrowid
+
+
+def check_round_complete(conn, review_round_id):
+    """检查该轮下所有 assignment 是否 returned=1"""
+    total = conn.execute(
+        "SELECT COUNT(*) FROM assignments WHERE review_round_id=?", (review_round_id,)
+    ).fetchone()[0]
+    if total == 0:
+        return False
+    returned = conn.execute(
+        "SELECT COUNT(*) FROM assignments WHERE review_round_id=? AND returned=1",
+        (review_round_id,),
+    ).fetchone()[0]
+    return returned >= total
+
+
+def update_submission_stage(conn, submission_id):
+    """根据 review_rounds 状态和 assignments 返回情况更新 submissions.workflow_stage。
+    不在此函数内 commit，由调用方控制事务。"""
+    rounds = conn.execute(
+        "SELECT id, round_name, status, chief_decision FROM review_rounds "
+        "WHERE submission_id=? ORDER BY round_name",
+        (submission_id,),
+    ).fetchall()
+
+    sub = conn.execute(
+        "SELECT status FROM submissions WHERE id=?", (submission_id,)
+    ).fetchone()
+    if not sub:
+        return
+
+    coarse = sub["status"]
+    if coarse in ("已退稿", "作者撤稿"):
+        conn.execute(
+            "UPDATE submissions SET workflow_stage=? WHERE id=?",
+            (coarse, submission_id),
+        )
+        return
+
+    # 退稿判定
+    for r in rounds:
+        if r["chief_decision"] == "退稿":
+            conn.execute(
+                "UPDATE submissions SET workflow_stage=? WHERE id=?",
+                (f"待{r['round_name']}回复作者", submission_id),
+            )
+            return
+
+    # 按当前轮次状态判定
+    current = conn.execute(
+        "SELECT current_round FROM submissions WHERE id=?", (submission_id,)
+    ).fetchone()
+    cur_round = current["current_round"] if current else "一审"
+
+    for r in rounds:
+        if r["round_name"] != cur_round:
+            continue
+        if r["status"] in ("未开始", "派稿中"):
+            conn.execute(
+                "UPDATE submissions SET workflow_stage=? WHERE id=?",
+                (f"待派{cur_round}", submission_id),
+            )
+        elif r["status"] == "审稿返回中":
+            conn.execute(
+                "UPDATE submissions SET workflow_stage=? WHERE id=?",
+                (f"{cur_round}中", submission_id),
+            )
+        elif r["status"] == "待主编决定":
+            conn.execute(
+                "UPDATE submissions SET workflow_stage=? WHERE id=?",
+                (f"待{cur_round}决定", submission_id),
+            )
+        elif r["status"] == "待回复作者":
+            conn.execute(
+                "UPDATE submissions SET workflow_stage=? WHERE id=?",
+                (f"待{cur_round}回复作者", submission_id),
+            )
+        elif r["status"] == "待作者返修":
+            conn.execute(
+                "UPDATE submissions SET workflow_stage=? WHERE id=?",
+                ("待作者返修", submission_id),
+            )
+        elif r["status"] == "已完成":
+            if cur_round == "三审":
+                conn.execute(
+                    "UPDATE submissions SET workflow_stage='已通过三审' WHERE id=?",
+                    (submission_id,),
+                )
+            else:
+                next_round = {"一审": "二审", "二审": "三审"}.get(cur_round, "")
+                if next_round:
+                    conn.execute(
+                        "UPDATE submissions SET workflow_stage=? WHERE id=?",
+                        (f"待派{next_round}", submission_id),
+                    )
+        break
+
+
+def get_submission_next_actions(submission_id):
+    """返回推荐下一步操作列表 [{label, url, kind}]"""
+    conn = get_conn()
+    sub = conn.execute(
+        "SELECT id, workflow_stage, current_round, status, anonymized FROM submissions WHERE id=?",
+        (submission_id,),
+    ).fetchone()
+    if not sub:
+        conn.close()
+        return []
+
+    wf = sub["workflow_stage"] or ""
+    sid = sub["id"]
+    actions = []
+
+    # 找到当前轮次的 review_round_id
+    rr = conn.execute(
+        "SELECT id FROM review_rounds WHERE submission_id=? AND round_name=?",
+        (sid, sub["current_round"]),
+    ).fetchone()
+    rid = rr["id"] if rr else None
+
+    if wf == "待匿名":
+        actions.append({"label": "上传匿名稿", "url": f"/submissions/{sid}", "kind": "primary"})
+    elif wf in ("待派一审", "待派二审", "待派三审"):
+        actions.append({"label": f"派{sub['current_round']}编辑", "url": f"/assignments/add?sid={sid}", "kind": "primary"})
+    elif "中" in wf and "待" not in wf:
+        pass  # 等待编辑返回
+    elif "待" in wf and "决定" in wf:
+        if rid:
+            actions.append({"label": "汇总决定", "url": f"/submissions/{sid}", "kind": "warning"})
+    elif "待" in wf and "回复" in wf:
+        if rid:
+            actions.append({"label": "标记已回复作者", "url": f"/submissions/{sid}", "kind": "success"})
+    elif wf == "待作者返修":
+        actions.append({"label": "上传返修稿", "url": f"/submissions/{sid}", "kind": "primary"})
+    elif wf == "已通过三审":
+        pass  # 终态，无操作
+
+    conn.close()
+    return actions
 
 
 def need_setup():
@@ -276,6 +438,7 @@ def submissions_list():
     kw = request.args.get("kw", "")
     sql = """
         SELECT s.id, s.title, s.field, s.received_date, s.status, s.submission_type,
+               s.workflow_stage, s.current_round,
                a1.name AS author1, a2.name AS author2
         FROM submissions s
         LEFT JOIN authors a1 ON s.author1_id = a1.id
@@ -323,8 +486,15 @@ def submissions_list():
     for s in submissions:
         d = dict(s)
         raw = progress_map.get(s["id"], [])
-        d["progress_by_round"] = {p["round"]: p for p in raw}
-        d["progress_arcs"] = [p["round"] for p in raw]
+        # 按轮次分组（支持同一轮多个编辑）
+        by_round = {}
+        for p in raw:
+            r = p["round"]
+            if r not in by_round:
+                by_round[r] = []
+            by_round[r].append(p)
+        d["progress_by_round"] = by_round
+        d["progress_arcs"] = list(by_round.keys())
         sub_list.append(d)
 
     return render_template("submissions.html", submissions=sub_list,
@@ -355,16 +525,38 @@ def submission_detail(sid):
         FROM assignments a JOIN editors e ON a.editor_id = e.id
         WHERE a.submission_id=? ORDER BY a.round, a.assigned_date
     """, (sid,)).fetchall()
+    review_rounds = conn.execute("""
+        SELECT * FROM review_rounds WHERE submission_id=? ORDER BY round_name
+    """, (sid,)).fetchall()
+    author_notifications = conn.execute("""
+        SELECT * FROM author_notifications WHERE submission_id=? ORDER BY created_at DESC
+    """, (sid,)).fetchall()
     submission_files = conn.execute(
-        "SELECT id, filename, file_path, file_type FROM submission_files WHERE submission_id=?",
+        "SELECT id, filename, file_path, file_type, version_label, round_name FROM submission_files WHERE submission_id=?",
         (sid,),
     ).fetchall()
     submission_main_file = sub["file_path"] if sub["file_path"] else ""
     conn.close()
+
+    # 按 round 分组 assignments
+    assignments_by_round = {}
+    for a in assigns:
+        r = a["round"] or "未知"
+        if r not in assignments_by_round:
+            assignments_by_round[r] = []
+        assignments_by_round[r].append(dict(a))
+
+    next_actions = get_submission_next_actions(sid)
+
     return render_template("submission_detail.html", sub=sub, assigns=assigns,
+                           review_rounds=review_rounds,
+                           assignments_by_round=assignments_by_round,
+                           author_notifications=author_notifications,
+                           next_actions=next_actions,
                            submission_files=submission_files,
                            submission_main_file=submission_main_file,
-                           statuses=STATUSES, rounds=ROUNDS, assign_statuses=ASSIGN_STATUSES)
+                           statuses=STATUSES, rounds=ROUNDS, assign_statuses=ASSIGN_STATUSES,
+                           workflow_stages=WORKFLOW_STAGES, chief_decisions=CHIEF_DECISIONS)
 
 
 @app.route("/submissions/add", methods=["GET", "POST"])
@@ -446,6 +638,14 @@ def submission_update_status(sid):
     conn = get_conn()
     conn.execute("UPDATE submissions SET status=?, updated_at=datetime('now','localtime') WHERE id=?",
                  (new_status, sid))
+    # 粗状态 → workflow_stage 映射
+    _status_to_wf = {
+        "已退稿": "已退稿",
+        "作者撤稿": "作者撤稿",
+        "已录用": "已通过三审",
+    }
+    if new_status in _status_to_wf:
+        conn.execute("UPDATE submissions SET workflow_stage=? WHERE id=?", (_status_to_wf[new_status], sid))
     log_activity(conn, "submission", sid, "更新状态", f"状态: {new_status}")
     conn.commit()
     conn.close()
@@ -501,6 +701,250 @@ def submission_delete(sid):
     return redirect(url_for("submissions_list"))
 
 
+# ── 审稿流程：主编决定 / 回复作者 / 上传返修稿 ─────
+
+@app.route("/submissions/<int:sid>/rounds/<int:rid>/decide", methods=["POST"])
+@login_required
+@admin_required
+def chief_decide(sid, rid):
+    """主编汇总本轮决定"""
+    chief_decision = request.form.get("chief_decision", "").strip()
+    notes = request.form.get("notes", "").strip()
+    needs_author_reply = request.form.get("needs_author_reply", "0")
+
+    if chief_decision not in ("通过", "返修", "退稿"):
+        flash("无效的决定类型", "danger")
+        return redirect(url_for("submission_detail", sid=sid))
+
+    conn = get_conn()
+    rr = conn.execute(
+        "SELECT * FROM review_rounds WHERE id=? AND submission_id=?", (rid, sid)
+    ).fetchone()
+    if not rr:
+        conn.close()
+        flash("轮次记录不存在", "danger")
+        return redirect(url_for("submission_detail", sid=sid))
+
+    now = datetime.now().strftime("%Y.%m.%d %H:%M")
+    round_name = rr["round_name"]
+
+    if chief_decision == "退稿":
+        conn.execute(
+            "UPDATE review_rounds SET chief_decision=?, status='待回复作者', decision_date=?, notes=?, updated_at=? WHERE id=?",
+            (chief_decision, now, notes, now, rid),
+        )
+        conn.execute(
+            "UPDATE submissions SET workflow_stage=?, status='已退稿', needs_author_reply=1, updated_at=? WHERE id=?",
+            (f"待{round_name}回复作者", now, sid),
+        )
+    elif chief_decision == "返修":
+        conn.execute(
+            "UPDATE review_rounds SET chief_decision=?, status='待回复作者', decision_date=?, notes=?, updated_at=? WHERE id=?",
+            (chief_decision, now, notes, now, rid),
+        )
+        conn.execute(
+            "UPDATE submissions SET workflow_stage=?, status='返修中', needs_author_reply=1, updated_at=? WHERE id=?",
+            (f"待{round_name}回复作者", now, sid),
+        )
+    elif chief_decision == "通过":
+        conn.execute(
+            "UPDATE review_rounds SET chief_decision=?, status='已完成', decision_date=?, notes=?, updated_at=? WHERE id=?",
+            (chief_decision, now, notes, now, rid),
+        )
+        if round_name == "三审":
+            conn.execute(
+                "UPDATE submissions SET workflow_stage='已通过三审', status='已录用', final_decision='通过三审', updated_at=? WHERE id=?",
+                (now, sid),
+            )
+        else:
+            next_round = {"一审": "二审", "二审": "三审"}.get(round_name, "")
+            if next_round:
+                conn.execute(
+                    "UPDATE submissions SET workflow_stage=?, current_round=?, updated_at=? WHERE id=?",
+                    (f"待派{next_round}", next_round, now, sid),
+                )
+                get_or_create_review_round(conn, sid, next_round)
+
+    log_activity(conn, "submission", sid, "主编决定", f"轮次: {round_name}, 决定: {chief_decision}")
+    conn.commit()
+    conn.close()
+    flash(f"{round_name}决定: {chief_decision}", "success")
+    return redirect(url_for("submission_detail", sid=sid))
+
+
+@app.route("/submissions/<int:sid>/rounds/<int:rid>/author-reply", methods=["POST"])
+@login_required
+@admin_required
+def author_reply_mark(sid, rid):
+    """标记已回复作者"""
+    conn = get_conn()
+    rr = conn.execute(
+        "SELECT * FROM review_rounds WHERE id=? AND submission_id=?", (rid, sid)
+    ).fetchone()
+    if not rr:
+        conn.close()
+        flash("轮次记录不存在", "danger")
+        return redirect(url_for("submission_detail", sid=sid))
+
+    now = datetime.now().strftime("%Y.%m.%d %H:%M")
+    chief_decision = rr["chief_decision"]
+
+    # 写入 author_notifications
+    conn.execute(
+        "INSERT INTO author_notifications (submission_id, review_round_id, notification_type, result_label, status, sent_at) VALUES (?,?,?,?,?,?)",
+        (sid, rid, "审稿结果通知", chief_decision, "已发送", now),
+    )
+
+    conn.execute(
+        "UPDATE review_rounds SET author_reply_status='已发送', author_replied_at=?, updated_at=? WHERE id=?",
+        (now, now, rid),
+    )
+    conn.execute("UPDATE submissions SET author_replied_at=? WHERE id=?", (now, sid))
+
+    if chief_decision == "退稿":
+        conn.execute(
+            "UPDATE submissions SET workflow_stage='已退稿', updated_at=? WHERE id=?",
+            (now, sid),
+        )
+    elif chief_decision == "返修":
+        conn.execute(
+            "UPDATE submissions SET workflow_stage='待作者返修', updated_at=? WHERE id=?",
+            (now, sid),
+        )
+        conn.execute(
+            "UPDATE review_rounds SET status='待作者返修' WHERE id=?", (rid,)
+        )
+
+    log_activity(conn, "submission", sid, "回复作者", f"轮次: {rr['round_name']}, 结果: {chief_decision}")
+    conn.commit()
+    conn.close()
+    flash("已标记回复作者", "success")
+    return redirect(url_for("submission_detail", sid=sid))
+
+
+
+@app.route("/submissions/<int:sid>/anonymize", methods=["POST"])
+@login_required
+@admin_required
+def anonymize_submission(sid):
+    """上传匿名稿，标记稿件已匿名化，推进到待派一审"""
+    conn = get_conn()
+    sub = conn.execute(
+        "SELECT id, workflow_stage FROM submissions WHERE id=?", (sid,)
+    ).fetchone()
+    if not sub:
+        conn.close()
+        flash("稿件不存在", "danger")
+        return redirect(url_for("submissions_list"))
+
+    now = datetime.now().strftime("%Y.%m.%d %H:%M")
+    ensure_upload_dir()
+    from journal_automation.utils import sanitize_filename, ensure_unique_path
+
+    if "anonymous_file" not in request.files:
+        flash("请选择匿名稿文件", "danger")
+        conn.close()
+        return redirect(url_for("submission_detail", sid=sid))
+
+    f = request.files["anonymous_file"]
+    if not f or not f.filename:
+        flash("请选择匿名稿文件", "danger")
+        conn.close()
+        return redirect(url_for("submission_detail", sid=sid))
+
+    ext = os.path.splitext(f.filename)[1].lower()
+    if ext not in ALLOWED_EXT:
+        flash(f"不支持的文件类型: {ext}", "danger")
+        conn.close()
+        return redirect(url_for("submission_detail", sid=sid))
+
+    # 保存匿名稿
+    subdir = os.path.join(UPLOAD_DIR, f"submission_{sid}")
+    os.makedirs(subdir, exist_ok=True)
+    safe_name = sanitize_filename(f.filename)
+    if not safe_name.lower().endswith(ext):
+        safe_name = safe_name + ext
+    dst = ensure_unique_path(Path(subdir) / safe_name)
+    f.save(str(dst))
+    rel_path = f"uploads/submission_{sid}/{dst.name}"
+
+    # 写入 submission_files
+    cur = conn.execute(
+        "INSERT INTO submission_files (submission_id, filename, file_path, file_type, round_name, version_label, uploaded_by_role) VALUES (?,?,?,?,?,?,?)",
+        (sid, f.filename, rel_path, "匿名稿", "一审", "匿名稿", "admin"),
+    )
+    fid = cur.lastrowid
+
+    # 标记匿名化 + 推进到待派一审
+    conn.execute(
+        "UPDATE submissions SET anonymized=1, anonymous_file_id=?, workflow_stage='待派一审', current_round='一审', updated_at=? WHERE id=?",
+        (fid, now, sid),
+    )
+    # 确保一审 review_round 存在
+    get_or_create_review_round(conn, sid, "一审")
+
+    log_activity(conn, "submission", sid, "上传匿名稿", f"匿名稿: {f.filename}")
+    conn.commit()
+    conn.close()
+    flash("匿名稿已上传，稿件已推进到待派一审", "success")
+    return redirect(url_for("submission_detail", sid=sid))
+
+@app.route("/submissions/<int:sid>/revision", methods=["POST"])
+@login_required
+@admin_required
+def revision_upload(sid):
+    """上传返修稿并推进流程到下一轮"""
+    conn = get_conn()
+    sub = conn.execute(
+        "SELECT id, current_round FROM submissions WHERE id=?", (sid,)
+    ).fetchone()
+    if not sub:
+        conn.close()
+        flash("稿件不存在", "danger")
+        return redirect(url_for("submissions_list"))
+
+    now = datetime.now().strftime("%Y.%m.%d %H:%M")
+    cur_round = sub["current_round"]
+    next_round = {"一审": "二审", "二审": "三审"}.get(cur_round)
+
+    # 处理文件上传
+    ensure_upload_dir()
+    from journal_automation.utils import sanitize_filename, ensure_unique_path
+
+    file_saved = False
+    if "revision_file" in request.files:
+        f = request.files["revision_file"]
+        if f and f.filename:
+            ext = os.path.splitext(f.filename)[1].lower()
+            if ext in ALLOWED_EXT:
+                subdir = os.path.join(UPLOAD_DIR, f"submission_{sid}")
+                os.makedirs(subdir, exist_ok=True)
+                safe_name = sanitize_filename(f.filename)
+                if not safe_name.lower().endswith(ext):
+                    safe_name = safe_name + ext
+                dst = ensure_unique_path(Path(subdir) / safe_name)
+                f.save(str(dst))
+                rel_path = f"uploads/submission_{sid}/{dst.name}"
+                conn.execute(
+                    "INSERT INTO submission_files (submission_id, filename, file_path, file_type, round_name, version_label, uploaded_by_role) VALUES (?,?,?,?,?,?,?)",
+                    (sid, f.filename, rel_path, "返修稿", cur_round, "返修稿", "admin"),
+                )
+                file_saved = True
+
+    if next_round:
+        conn.execute(
+            "UPDATE submissions SET current_round=?, workflow_stage=?, updated_at=? WHERE id=?",
+            (next_round, f"待派{next_round}", now, sid),
+        )
+        get_or_create_review_round(conn, sid, next_round)
+
+    log_activity(conn, "submission", sid, "上传返修稿", f"轮次: {cur_round} → {next_round or '已完成'}")
+    conn.commit()
+    conn.close()
+    flash("返修稿已上传，流程已推进" if file_saved else "流程已推进（无文件上传）", "success")
+    return redirect(url_for("submission_detail", sid=sid))
+
+
 # ── 派稿管理 (管理员) ─────────────────────────────
 
 @app.route("/assignments")
@@ -515,6 +959,7 @@ def assignments_list():
     sql = """
         SELECT a.id, a.round, a.status, a.result, a.assigned_date, a.result_date,
                a.score_total, a.review_opinion, a.file_review, a.file_annotated,
+               a.editor_recommendation, a.opinion_summary, a.returned,
                s.id AS sid, s.title, s.field,
                e.name AS editor_name,
                au.name AS author_name
@@ -556,13 +1001,19 @@ def assignment_add():
             flash("请选择稿件和编辑", "danger")
             conn.close()
             return redirect(url_for("assignment_add"))
+        # 获取或创建 review_round
+        rid = get_or_create_review_round(conn, sid, round_name)
+
         conn.execute(
-            "INSERT INTO assignments (submission_id, editor_id, round, assigned_date, status) VALUES (?,?,?,?,?)",
-            (sid, eid, round_name, adate, "待审"),
+            "INSERT INTO assignments (submission_id, editor_id, round, assigned_date, status, review_round_id) VALUES (?,?,?,?,?,?)",
+            (sid, eid, round_name, adate, "待审", rid),
         )
-        sub = conn.execute("SELECT status FROM submissions WHERE id=?", (sid,)).fetchone()
-        if sub and sub["status"] == "待处理":
-            conn.execute("UPDATE submissions SET status='派稿中', updated_at=datetime('now','localtime') WHERE id=?", (sid,))
+        # 更新 review_rounds.status
+        conn.execute("UPDATE review_rounds SET status='派稿中', updated_at=datetime('now','localtime') WHERE id=?", (rid,))
+        # 更新 submissions.workflow_stage + current_round
+        conn.execute("UPDATE submissions SET current_round=?, updated_at=datetime('now','localtime') WHERE id=?", (round_name, sid))
+        update_submission_stage(conn, sid)
+
         editor = conn.execute("SELECT name FROM editors WHERE id=?", (eid,)).fetchone()
         log_activity(conn, "assignment", sid, "派稿", f"编辑: {editor['name']}, 轮次: {round_name}")
         conn.commit()
@@ -571,7 +1022,7 @@ def assignment_add():
         return redirect(url_for("assignments_list"))
 
     pend = conn.execute("""
-        SELECT s.id, s.title, s.field, a.name AS author1
+        SELECT s.id, s.title, s.field, s.status, s.workflow_stage, s.current_round, a.name AS author1
         FROM submissions s
         LEFT JOIN authors a ON s.author1_id = a.id
         WHERE s.status IN ('待处理','派稿中','审稿中','返修中')
@@ -608,17 +1059,10 @@ def assignment_update(aid):
         "UPDATE assignments SET status=?, result=?, result_date=?, opinion_summary=? WHERE id=?",
         (new_status, new_result, rdate, summary, aid),
     )
-    sid = r["submission_id"]
-    if new_status == "已通过":
-        conn.execute("UPDATE submissions SET status='已录用', updated_at=datetime('now','localtime') WHERE id=?", (sid,))
-    elif new_status == "返修":
-        conn.execute("UPDATE submissions SET status='返修中', updated_at=datetime('now','localtime') WHERE id=?", (sid,))
-    elif new_status == "退稿":
-        conn.execute("UPDATE submissions SET status='已退稿', updated_at=datetime('now','localtime') WHERE id=?", (sid,))
     log_activity(conn, "assignment", aid, "更新派稿结果", f"状态: {new_status}, 结果: {new_result}")
     conn.commit()
     conn.close()
-    flash(f"派稿记录 {aid} 已更新", "success")
+    flash(f"派稿记录 {aid} 已更新（这是编辑意见，主编汇总决定请到稿件详情页操作）", "success")
     return redirect(url_for("assignments_list"))
 
 
@@ -857,13 +1301,15 @@ def editor_dashboard():
     editor = conn.execute("SELECT password_default FROM editors WHERE id=?", (eid,)).fetchone()
     password_default = editor["password_default"] if editor and editor["password_default"] else 0
 
-    # 我的审稿列表
+    # 我的审稿列表 — 未匿名稿件隐藏作者信息
     assigns = conn.execute("""
         SELECT a.id, a.round, a.status, a.result, a.assigned_date, a.deadline,
                a.score_total, a.review_opinion, a.reviewed_at,
                a.file_review, a.file_annotated,
                s.id AS sid, s.title, s.field, s.submission_type,
-               au.name AS author_name, au.affiliation AS author_aff
+               s.anonymized,
+               CASE WHEN s.anonymized=1 THEN au.name ELSE '待匿名' END AS author_name,
+               CASE WHEN s.anonymized=1 THEN au.affiliation ELSE '' END AS author_aff
         FROM assignments a
         JOIN submissions s ON a.submission_id = s.id
         LEFT JOIN authors au ON s.author1_id = au.id
@@ -924,7 +1370,9 @@ def editor_review(aid):
     conn = get_conn()
     assign = conn.execute("""
         SELECT a.*, s.title, s.field, s.submission_type, s.file_path,
-               au.name AS author_name, au.affiliation AS author_aff
+               s.anonymized,
+               CASE WHEN s.anonymized=1 THEN au.name ELSE '' END AS author_name,
+               CASE WHEN s.anonymized=1 THEN au.affiliation ELSE '' END AS author_aff
         FROM assignments a
         JOIN submissions s ON a.submission_id = s.id
         LEFT JOIN authors au ON s.author1_id = au.id
@@ -986,22 +1434,42 @@ def editor_review(aid):
                     file_annotated = f"uploads/review_{aid}/{dst.name}"
 
         now = datetime.now().strftime("%Y.%m.%d %H:%M")
+        _OPINION_TO_RECOMMENDATION = {
+            "录用": "通过",
+            "修改": "返修", "修改后录用": "返修", "修改后录用(再审)": "返修", "再审": "返修",
+            "退稿": "退稿",
+        }
+        editor_rec = _OPINION_TO_RECOMMENDATION.get(review_opinion, review_opinion)
+
         conn.execute("""
             UPDATE assignments SET
                 score_topic=?, score_argument=?, score_innovation=?, score_standard=?, score_total=?,
                 review_opinion=?, review_comment=?, file_review=?, file_annotated=?,
-                status='已返回', reviewed_at=?
+                status='已返回', reviewed_at=?, returned=1, editor_recommendation=?
             WHERE id=?
         """, (score_topic, score_argument, score_innovation, score_standard, score_total,
-              review_opinion, review_comment, file_review, file_annotated, now, aid))
+              review_opinion, review_comment, file_review, file_annotated, now, editor_rec, aid))
 
-        # 更新稿件状态
-        sid = assign["submission_id"]
-        conn.execute("UPDATE submissions SET status='审稿中', updated_at=datetime('now','localtime') WHERE id=? AND status='派稿中'", (sid,))
-        log_activity(conn, "assignment", aid, "编辑提交审稿", f"总分: {score_total}, 意见: {review_opinion}")
+        # 判断同轮是否全部返回
+        rid = assign["review_round_id"]
+        if rid and check_round_complete(conn, rid):
+            conn.execute(
+                "UPDATE review_rounds SET status='待主编决定', updated_at=datetime('now','localtime') WHERE id=?",
+                (rid,),
+            )
+            round_info = conn.execute(
+                "SELECT round_name FROM review_rounds WHERE id=?", (rid,)
+            ).fetchone()
+            if round_info:
+                conn.execute(
+                    "UPDATE submissions SET workflow_stage=? WHERE id=?",
+                    (f"待{round_info['round_name']}决定", assign["submission_id"]),
+                )
+
+        log_activity(conn, "assignment", aid, "编辑提交审稿", f"总分: {score_total}, 意见: {review_opinion}, 建议: {editor_rec}")
         conn.commit()
         conn.close()
-        flash("审稿意见已提交!", "success")
+        flash("审稿意见已提交，等待主编汇总本轮决定", "success")
         return redirect(url_for("editor_dashboard"))
 
     # 稿件附件列表（供下载）
