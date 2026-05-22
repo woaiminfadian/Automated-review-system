@@ -44,6 +44,17 @@ ALLOWED_EXT = {".docx", ".doc", ".pdf"}
 DEFAULT_EDITOR_PASSWORD = os.environ.get("DEFAULT_EDITOR_PASSWORD", "123456")
 
 # ── 自动化配置 ─────────────────────────────────────
+
+# ── Jinja2 Filters ─────────────────────────────────────
+@app.template_filter("from_json")
+def from_json(value):
+    """Jinja2 filter: parse JSON string to Python object"""
+    if not value:
+        return []
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        return []
 from pathlib import Path
 from journal_automation.config import load_config as _load_automation_config
 
@@ -259,6 +270,91 @@ def get_submission_next_actions(submission_id):
     return actions
 
 
+def get_round_display_status(submission, round_row, assignments):
+    """返回轮次在主编端的显示状态"""
+    if not assignments:
+        return "待派稿"
+
+    total = len(assignments)
+    returned = sum(1 for a in assignments if a.get("returned"))
+    chief = (round_row.get("chief_decision") or "").strip() if round_row else ""
+    round_name = (round_row.get("round_name") or submission.get("current_round") or "")
+
+    if returned == 0:
+        return "待审回"
+    elif returned < total:
+        return "部分审回"
+
+    if not chief:
+        return "待回复"
+
+    if chief == "退稿":
+        return "已退稿"
+
+    if chief == "返修":
+        author_status = (round_row.get("author_reply_status") or "") if round_row else ""
+        if author_status == "已回复":
+            return "已进入下一轮"
+        return "待修改后回复"
+
+    if chief == "通过":
+        if round_name == "三审":
+            return "已通过"
+        return "已进入下一轮"
+
+    return "待回复"
+
+
+def get_round_next_action(submission, round_row, assignments):
+    """返回轮次主编下一步操作建议 [{label, url, kind}]"""
+    sid = submission["id"]
+    rid = round_row["id"] if round_row else None
+    round_name = (round_row.get("round_name") or submission.get("current_round") or "")
+
+    status = get_round_display_status(submission, round_row, assignments)
+    actions = []
+
+    if status == "待派稿":
+        actions.append({
+            "label": f"派{round_name}编辑",
+            "url": f"/assignments/add?sid={sid}&round={round_name}",
+            "kind": "primary"
+        })
+    elif status in ("待审回", "部分审回"):
+        actions.append({
+            "label": "查看进度",
+            "url": f"/submissions/{sid}",
+            "kind": "secondary"
+        })
+        if status == "部分审回":
+            actions.append({
+                "label": "补派编辑",
+                "url": f"/assignments/add?sid={sid}&round={round_name}",
+                "kind": "outline-secondary"
+            })
+    elif status == "待回复":
+        if rid:
+            actions.append({
+                "label": "汇总决定",
+                "url": f"/submissions/{sid}#rounds",
+                "kind": "warning"
+            })
+    elif status == "待修改后回复":
+        actions.append({
+            "label": "上传返修稿",
+            "url": f"/submissions/{sid}",
+            "kind": "primary"
+        })
+        if rid:
+            actions.append({
+                "label": "标记已回复",
+                "url": f"/submissions/{sid}#rounds",
+                "kind": "success"
+            })
+
+    return actions
+
+
 def need_setup():
     """检查是否需要首次设置（无编辑有密码）"""
     conn = get_conn()
@@ -428,6 +524,50 @@ def dashboard():
                            pending_assign=pending_assign,
                            by_round=by_round, editor_stats=editor_stats,
                            recent_activity=recent_activity)
+
+
+# ── 收稿管理 (管理员) ─────────────────────────────
+
+@app.route("/intake")
+@login_required
+@admin_required
+def intake_manage():
+    conn = get_conn()
+
+    # 待登记邮件
+    pending_emails = conn.execute(
+        "SELECT * FROM email_staging WHERE status='待录入' ORDER BY id DESC LIMIT 50"
+    ).fetchall()
+
+    # 待匿名稿件
+    pending_anonymize = conn.execute(
+        """SELECT s.id, s.title, s.field, s.received_date, s.workflow_stage,
+                  a1.name AS author1, a2.name AS author2
+           FROM submissions s
+           LEFT JOIN authors a1 ON s.author1_id = a1.id
+           LEFT JOIN authors a2 ON s.author2_id = a2.id
+           WHERE s.workflow_stage = '待匿名'
+           ORDER BY s.id DESC"""
+    ).fetchall()
+
+    # 已匿名待派一审
+    ready_for_round1 = conn.execute(
+        """SELECT s.id, s.title, s.field, s.received_date, s.workflow_stage,
+                  a1.name AS author1, a2.name AS author2
+           FROM submissions s
+           LEFT JOIN authors a1 ON s.author1_id = a1.id
+           LEFT JOIN authors a2 ON s.author2_id = a2.id
+           WHERE s.workflow_stage = '待派一审'
+           ORDER BY s.id DESC"""
+    ).fetchall()
+
+    conn.close()
+    return render_template("intake.html",
+                           pending_emails=pending_emails,
+                           pending_anonymize=pending_anonymize,
+                           ready_for_round1=ready_for_round1)
+
+
 @app.route("/submissions")
 @login_required
 @admin_required
@@ -945,6 +1085,86 @@ def revision_upload(sid):
     return redirect(url_for("submission_detail", sid=sid))
 
 
+# ── 审稿轮次管理 (管理员) ─────────────────────────
+
+@app.route("/reviews/round/<round_name>")
+@login_required
+@admin_required
+def review_round_manage(round_name):
+    if round_name not in ROUNDS:
+        flash("无效的轮次名称", "danger")
+        return redirect(url_for("dashboard"))
+
+    conn = get_conn()
+
+    # 查询该轮次的所有 review_rounds
+    rounds_rows = conn.execute(
+        """SELECT rr.id, rr.submission_id, rr.round_name, rr.status, rr.chief_decision,
+                  rr.decision_date, rr.author_reply_status, rr.author_replied_at
+           FROM review_rounds rr
+           WHERE rr.round_name = ?
+           ORDER BY rr.submission_id DESC""",
+        (round_name,),
+    ).fetchall()
+
+    # 按 submission_id 分组
+    submissions_data = []
+    for rr in rounds_rows:
+        rr_dict = dict(rr)
+        sid = rr_dict["submission_id"]
+
+        sub = conn.execute(
+            """SELECT s.id, s.title, s.field, s.workflow_stage, s.current_round,
+                      a1.name AS author1
+               FROM submissions s
+               LEFT JOIN authors a1 ON s.author1_id = a1.id
+               WHERE s.id = ?""",
+            (sid,),
+        ).fetchone()
+        if not sub:
+            continue
+        sub_dict = dict(sub)
+
+        # 查询该轮次的所有 assignments
+        assigns = conn.execute(
+            """SELECT a.id, a.status, a.result, a.editor_recommendation,
+                      a.returned, a.score_total, a.review_opinion,
+                      e.name AS editor_name
+               FROM assignments a
+               JOIN editors e ON a.editor_id = e.id
+               WHERE a.submission_id = ? AND a.round = ?
+               ORDER BY a.assigned_date""",
+            (sid, round_name),
+        ).fetchall()
+        assigns_list = [dict(a) for a in assigns]
+
+        display_status = get_round_display_status(sub_dict, rr_dict, assigns_list)
+        next_actions = get_round_next_action(sub_dict, rr_dict, assigns_list)
+
+        submissions_data.append({
+            "submission": sub_dict,
+            "round": rr_dict,
+            "assignments": assigns_list,
+            "display_status": display_status,
+            "next_actions": next_actions,
+            "returned_count": sum(1 for a in assigns_list if a.get("returned")),
+            "total_count": len(assigns_list),
+        })
+
+    conn.close()
+
+    # 统计
+    status_counts = {}
+    for d in submissions_data:
+        s = d["display_status"]
+        status_counts[s] = status_counts.get(s, 0) + 1
+
+    return render_template("review_round_manage.html",
+                           round_name=round_name,
+                           submissions_data=submissions_data,
+                           status_counts=status_counts)
+
+
 # ── 派稿管理 (管理员) ─────────────────────────────
 
 @app.route("/assignments")
@@ -1285,6 +1505,8 @@ def editor_set_password(eid):
     conn.close()
     flash(f"编辑 {editor['name']} 密码已设置", "success")
     return redirect(url_for("editors_list"))
+
+
 
 
 # ═══════════════════════════════════════════════════════
@@ -1801,12 +2023,17 @@ def api_email_import(staging_id):
 
     cur = conn.execute(
         """INSERT INTO submissions
-           (title, field, submission_type, author1_id, author2_id, received_date, status, file_path, notes)
-           VALUES (?,?,?,?,?,?,?,?,?)""",
+           (title, field, submission_type, author1_id, author2_id, received_date, status, file_path, notes,
+            workflow_stage, current_round, anonymized)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
         (title, field, submission_type, aid1, aid2, received_date, "待处理",
-         main_file_path, f"邮件导入 (message_id: {staging['message_id']})"),
+         main_file_path, f"邮件导入 (message_id: {staging['message_id']})",
+         "待匿名", "一审", 0),
     )
     sid = cur.lastrowid
+
+    # 自动创建一审 review_round
+    get_or_create_review_round(conn, sid, "一审")
 
     if attachments_info:
         final_dir = os.path.join(UPLOAD_DIR, f"submission_{sid}")
@@ -1848,8 +2075,8 @@ def api_email_import(staging_id):
                 ftype = '附件'
 
             conn.execute(
-                "INSERT INTO submission_files (submission_id, filename, file_path, file_type, source) VALUES (?,?,?,?,?)",
-                (sid, dst.name, rel_path, ftype, 'email'),
+                "INSERT INTO submission_files (submission_id, filename, file_path, file_type, source, version_label, uploaded_by_role) VALUES (?,?,?,?,?,?,?)",
+                (sid, dst.name, rel_path, ftype, 'email', '原稿', 'author'),
             )
 
         if final_paths:

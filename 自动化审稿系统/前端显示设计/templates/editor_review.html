@@ -25,10 +25,10 @@
             </div>
             <div class="col-md-2">
                 <span class="text-muted fs-small">作者:</span>
-                {% if assign.anonymized %}
+                {% if current_user.is_admin %}
                 {{ assign.author_name or '-' }}
                 {% else %}
-                <span class="text-warning">待匿名</span>
+                <span class="text-muted">盲审中</span>
                 {% endif %}
             </div>
             <div class="col-md-2">
@@ -107,12 +107,26 @@
     <div class="card-body py-2">
         <div class="d-flex flex-wrap gap-2 align-items-center">
             {% if submission_files %}
-                {% for sf in submission_files %}
+                {% set anon_files = submission_files | selectattr("file_type", "equalto", "匿名稿") | list %}
+                {% set other_files = submission_files | rejectattr("file_type", "equalto", "匿名稿") | list %}
+                {% for sf in anon_files %}
                 <a href="{{ url_for('download_submission_file', sid=assign.submission_id, fid=sf.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-download"></i> {{ sf.filename }}
+                    <span class="badge bg-success text-white ms-1" style="font-size:10px">匿名稿</span>
+                </a>
+                {% endfor %}
+                {% if anon_files and other_files %}
+                <span class="text-muted mx-1" style="font-size:11px">|</span>
+                {% endif %}
+                {% for sf in other_files %}
+                <a href="{{ url_for('download_submission_file', sid=assign.submission_id, fid=sf.id) }}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-download"></i> {{ sf.filename }}
                     <span class="badge bg-light text-dark ms-1" style="font-size:10px">{{ sf.file_type }}</span>
                 </a>
                 {% endfor %}
+                {% if not anon_files and not current_user.is_admin %}
+                <div class="text-warning mt-1 w-100" style="font-size:11px"><i class="bi bi-exclamation-triangle"></i> 主编尚未上传匿名稿，当前文件可能包含作者身份信息</div>
+                {% endif %}
             {% elif submission_main_file %}
                 {% set main_path = submission_main_file.replace('uploads/', '') %}
                 <a href="{{ url_for('download_file', filename=main_path) }}" class="btn btn-sm btn-outline-primary">

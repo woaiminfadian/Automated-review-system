@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}收稿管理{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h4>收稿管理</h4>
+        <span class="text-muted">邮件登记 · 匿名化 · 进入一审</span>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('email_inbox') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-envelope"></i> 邮件收稿(旧)</a>
+        <a href="{{ url_for('submission_add') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-lg"></i> 手动登记稿件</a>
+    </div>
+</div>
+
+<!-- 统计条 -->
+<div class="metric-strip mb-2">
+    <a href="#sec-emails" class="metric-item">
+        <div class="metric-num text-orange">{{ pending_emails|length }}</div>
+        <div class="metric-label">待登记邮件</div>
+    </a>
+    <a href="#sec-anonymize" class="metric-item">
+        <div class="metric-num text-purple">{{ pending_anonymize|length }}</div>
+        <div class="metric-label">待匿名</div>
+    </a>
+    <a href="#sec-ready" class="metric-item" style="border-right:none">
+        <div class="metric-num text-blue">{{ ready_for_round1|length }}</div>
+        <div class="metric-label">已匿名待一审</div>
+    </a>
+</div>
+
+<!-- 待登记邮件 -->
+<div class="card" style="margin-bottom:12px" id="sec-emails">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-envelope me-1"></i>待登记邮件</span>
+        <span class="badge bg-warning text-dark">{{ pending_emails|length }} 封</span>
+    </div>
+    <div class="card-body p-0">
+        {% if pending_emails %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr><th>ID</th><th>邮件标题</th><th>识别题名</th><th>发件人</th><th>学科</th><th>附件</th><th>日期</th><th style="width:140px">操作</th></tr>
+                </thead>
+                <tbody>
+                    {% for em in pending_emails %}
+                    <tr>
+                        <td class="text-muted fs-small">{{ em.id }}</td>
+                        <td><span class="text-ellipsis" style="max-width:180px" title="{{ em.subject_line }}">{{ em.subject_line or '-' }}</span></td>
+                        <td><span class="fw500">{{ em.title or '未识别' }}</span></td>
+                        <td>{{ em.sender_name or em.sender or '-' }}</td>
+                        <td><span class="badge bg-light text-dark">{{ em.field or '未识别' }}</span></td>
+                        <td>
+                            {% set atts = em.attachments_json|from_json if em.attachments_json is string else (em.attachments_json or []) %}
+                            {% if atts|length > 0 %}
+                            <span class="badge bg-info text-dark">{{ atts|length }} 个附件</span>
+                            {% else %}<span class="text-muted">-</span>{% endif %}
+                        </td>
+                        <td class="text-muted fs-small">{{ em.sent_at or em.created_at[:10] }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ url_for('email_inbox') }}?kw={{ em.id }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:11px"><i class="bi bi-pencil"></i> 核对登记</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-3"><i class="bi bi-inbox"></i><p>无待登记邮件</p></div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 待匿名稿件 -->
+<div class="card" style="margin-bottom:12px" id="sec-anonymize">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-eye-slash me-1"></i>待匿名稿件</span>
+        <span class="badge bg-purple text-white" style="background:#7c3aed">{{ pending_anonymize|length }} 篇</span>
+    </div>
+    <div class="card-body p-0">
+        {% if pending_anonymize %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr><th>ID</th><th>题名</th><th>学科</th><th>作者</th><th>收稿日期</th><th style="width:160px">操作</th></tr>
+                </thead>
+                <tbody>
+                    {% for s in pending_anonymize %}
+                    <tr>
+                        <td class="text-muted fs-small">{{ s.id }}</td>
+                        <td><a href="{{ url_for('submission_detail', sid=s.id, back='intake') }}" class="text-decoration-none fw500 text-ellipsis" style="max-width:200px" title="{{ s.title }}">{{ s.title[:40] }}{% if s.title|length > 40 %}…{% endif %}</a></td>
+                        <td><span class="badge bg-light text-dark">{{ s.field }}</span></td>
+                        <td>{{ s.author1 or '-' }}{% if s.author2 %}、{{ s.author2 }}{% endif %}</td>
+                        <td class="text-muted fs-small">{{ s.received_date }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ url_for('submission_detail', sid=s.id, back='intake') }}#anonymize" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:11px"><i class="bi bi-cloud-upload"></i> 上传匿名稿</a>
+                                <a href="{{ url_for('submission_detail', sid=s.id, back='intake') }}" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:11px"><i class="bi bi-eye"></i> 查看</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-3"><i class="bi bi-check-circle"></i><p>无待匿名稿件</p></div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 已匿名待一审 -->
+<div class="card" style="margin-bottom:12px" id="sec-ready">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-arrow-right-circle me-1"></i>已匿名 — 待进入一审</span>
+        <span class="badge bg-primary">{{ ready_for_round1|length }} 篇</span>
+    </div>
+    <div class="card-body p-0">
+        {% if ready_for_round1 %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr><th>ID</th><th>题名</th><th>学科</th><th>作者</th><th>收稿日期</th><th style="width:120px">操作</th></tr>
+                </thead>
+                <tbody>
+                    {% for s in ready_for_round1 %}
+                    <tr>
+                        <td class="text-muted fs-small">{{ s.id }}</td>
+                        <td><a href="{{ url_for('submission_detail', sid=s.id, back='intake') }}" class="text-decoration-none fw500 text-ellipsis" style="max-width:200px" title="{{ s.title }}">{{ s.title[:40] }}{% if s.title|length > 40 %}…{% endif %}</a></td>
+                        <td><span class="badge bg-light text-dark">{{ s.field }}</span></td>
+                        <td>{{ s.author1 or '-' }}{% if s.author2 %}、{{ s.author2 }}{% endif %}</td>
+                        <td class="text-muted fs-small">{{ s.received_date }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ url_for('assignment_add') }}?sid={{ s.id }}&round=一审" class="btn btn-sm btn-primary py-0 px-2" style="font-size:11px"><i class="bi bi-send"></i> 派一审</a>
+                                <a href="{{ url_for('submission_detail', sid=s.id, back='intake') }}" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:11px"><i class="bi bi-eye"></i> 查看</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-3"><i class="bi bi-inbox"></i><p>暂无待派稿稿件</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 统计条锚点平滑滚动
+document.querySelectorAll('.metric-item[href^="#"]').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+        e.preventDefault();
+        var target = document.querySelector(this.getAttribute('href'));
+        if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
+    });
+});
+</script>
+{% endblock %}

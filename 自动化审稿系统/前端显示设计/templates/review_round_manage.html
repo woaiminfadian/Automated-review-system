@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}{{ round_name }}管理{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h4>{{ round_name }}管理</h4>
+        <span class="text-muted">{{ submissions_data|length }} 篇稿件</span>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('assignment_add') }}?round={{ round_name }}" class="btn btn-sm btn-primary"><i class="bi bi-send"></i> 新建派稿</a>
+        <a href="{{ url_for('submissions_list') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-list"></i> 全部稿件</a>
+    </div>
+</div>
+
+<!-- 统计条 -->
+<div class="metric-strip mb-2">
+    <div class="metric-item">
+        <div class="metric-num text-blue">{{ submissions_data|length }}</div>
+        <div class="metric-label">全部</div>
+    </div>
+    <div class="metric-item">
+        <div class="metric-num text-red">{{ status_counts.get('待派稿', 0) }}</div>
+        <div class="metric-label">待派稿</div>
+    </div>
+    <div class="metric-item">
+        <div class="metric-num text-orange">{{ status_counts.get('待审回', 0) }}</div>
+        <div class="metric-label">待审回</div>
+    </div>
+    <div class="metric-item">
+        <div class="metric-num text-purple">{{ status_counts.get('部分审回', 0) }}</div>
+        <div class="metric-label">部分审回</div>
+    </div>
+    <div class="metric-item">
+        <div class="metric-num text-orange">{{ status_counts.get('待回复', 0) }}</div>
+        <div class="metric-label">待回复</div>
+    </div>
+    <div class="metric-item" style="border-right:none">
+        <div class="metric-num text-green">{{ status_counts.get('待修改后回复', 0) + status_counts.get('已通过', 0) + status_counts.get('已进入下一轮', 0) + status_counts.get('已退稿', 0) }}</div>
+        <div class="metric-label">已处理</div>
+    </div>
+</div>
+
+<!-- 状态快捷筛选 chips -->
+<div class="filter-chips mb-2">
+    <a href="#" class="chip active filter-chip" data-status="">全部</a>
+    <a href="#" class="chip filter-chip" data-status="待派稿">待派稿</a>
+    <a href="#" class="chip filter-chip" data-status="待审回">待审回</a>
+    <a href="#" class="chip filter-chip" data-status="部分审回">部分审回</a>
+    <a href="#" class="chip filter-chip" data-status="待回复">待回复</a>
+    <a href="#" class="chip filter-chip" data-status="待修改后回复">待修改后回复</a>
+    <a href="#" class="chip filter-chip" data-status="已结束">已结束</a>
+</div>
+
+<!-- 稿件列表 -->
+<div class="card" style="margin-bottom:12px">
+    <div class="card-body p-0">
+        {% if submissions_data %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="roundTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>题名</th>
+                        <th>学科</th>
+                        <th>{{ round_name }}编辑</th>
+                        <th>主编决定</th>
+                        <th>作者回复</th>
+                        <th>状态</th>
+                        <th style="width:120px">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in submissions_data %}
+                    <tr data-status="{{ d.display_status }}" data-end="{{ 'yes' if d.display_status in ('已退稿','已通过','已进入下一轮') else 'no' }}">
+                        <td class="text-muted fs-small">{{ d.submission.id }}</td>
+                        <td>
+                            <a href="{{ url_for('submission_detail', sid=d.submission.id, back='round_manage') }}" class="text-decoration-none fw500 text-ellipsis" style="max-width:180px" title="{{ d.submission.title }}">
+                                {{ d.submission.title[:35] }}{% if d.submission.title|length > 35 %}…{% endif %}
+                            </a>
+                        </td>
+                        <td><span class="badge bg-light text-dark">{{ d.submission.field }}</span></td>
+                        <td>
+                            {% if d.assignments %}
+                            <div class="d-flex flex-wrap gap-1">
+                                {% for a in d.assignments %}
+                                <span class="fs-small" style="white-space:nowrap">
+                                    <span class="fw500">{{ a.editor_name }}</span>
+                                    {% if a.returned %}
+                                    <i class="bi bi-check-circle-fill text-success" title="已返回"></i>
+                                    {% if a.editor_recommendation %}
+                                    <span class="badge
+                                        {% if a.editor_recommendation == '通过' %}status-已录用
+                                        {% elif a.editor_recommendation == '返修' %}status-返修中
+                                        {% elif a.editor_recommendation == '退稿' %}status-已退稿
+                                        {% else %}bg-secondary{% endif %}" style="font-size:10px">{{ a.editor_recommendation }}</span>
+                                    {% endif %}
+                                    {% else %}
+                                    <i class="bi bi-clock text-muted" title="待审"></i>
+                                    {% endif %}
+                                </span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <span class="text-muted fs-small">未派稿</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if d.round.chief_decision %}
+                            <span class="badge
+                                {% if d.round.chief_decision == '通过' %}status-已录用
+                                {% elif d.round.chief_decision == '返修' %}status-返修中
+                                {% elif d.round.chief_decision == '退稿' %}status-已退稿
+                                {% else %}bg-secondary{% endif %}">{{ d.round.chief_decision }}</span>
+                            {% else %}<span class="text-muted">-</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if d.round.author_reply_status == '已回复' %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span class="fs-small text-success">已回复</span>
+                            {% elif d.round.author_reply_status == '无需回复' %}
+                            <span class="text-muted fs-small">-</span>
+                            {% elif d.round.chief_decision in ('退稿','返修') %}
+                            <span class="badge bg-warning text-dark">待回复</span>
+                            {% else %}
+                            <span class="text-muted fs-small">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge fs-small
+                                {% if d.display_status == '待派稿' %}bg-secondary text-white
+                                {% elif d.display_status == '待审回' %}status-审稿中
+                                {% elif d.display_status == '部分审回' %}bg-info text-dark
+                                {% elif d.display_status == '待回复' %}bg-warning text-dark
+                                {% elif d.display_status == '待修改后回复' %}status-返修中
+                                {% elif d.display_status in ('已退稿',) %}status-已退稿
+                                {% elif d.display_status in ('已通过','已进入下一轮') %}status-已录用
+                                {% else %}bg-secondary{% endif %}">{{ d.display_status }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ url_for('submission_detail', sid=d.submission.id, back='round_manage') }}" class="btn-icon btn-sm btn-outline-secondary" title="查看稿件"><i class="bi bi-eye"></i></a>
+                                {% for act in d.next_actions %}
+                                <a href="{{ act.url }}" class="btn btn-sm py-0 px-2
+                                    {% if act.kind == 'primary' %}btn-primary
+                                    {% elif act.kind == 'warning' %}btn-warning
+                                    {% elif act.kind == 'success' %}btn-success
+                                    {% else %}btn-outline-secondary{% endif %}" style="font-size:11px">{{ act.label }}</a>
+                                {% endfor %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-3"><i class="bi bi-inbox"></i><p>暂无{{ round_name }}阶段稿件</p></div>
+        {% endif %}
+    </div>
+</div>
+
+{% if round_name == '三审' %}
+<div class="alert alert-info py-1 mb-2" style="font-size:11px">
+    <i class="bi bi-info-circle"></i> 三审为最终审稿轮次，默认只引导<strong>通过</strong>或<strong>退稿</strong>。系统不主动引导三审返修，但主编可自行处理特殊情况。
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Client-side status filter via chips
+document.querySelectorAll('.filter-chip').forEach(function(chip) {
+    chip.addEventListener('click', function(e) {
+        e.preventDefault();
+        var status = this.dataset.status;
+        document.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.remove('active'); });
+        this.classList.add('active');
+        document.querySelectorAll('#roundTable tbody tr').forEach(function(row) {
+            var rowStatus = row.dataset.status;
+            var isEnd = row.dataset.end === 'yes';
+            if (!status) {
+                row.style.display = '';
+            } else if (status === '已结束') {
+                row.style.display = isEnd ? '' : 'none';
+            } else {
+                row.style.display = rowStatus === status ? '' : 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

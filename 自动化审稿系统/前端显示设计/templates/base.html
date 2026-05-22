@@ -145,6 +145,25 @@
             background: #1a73e8; color: #fff; border-color: #1a73e8;
         }
 
+        /* ── Collapsible sidebar nav ── */
+        .sidebar .nav-parent {
+            position: relative; cursor: pointer;
+        }
+        .sidebar .collapse-arrow {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            font-size: 10px; transition: transform 0.2s;
+        }
+        .sidebar .nav-parent[aria-expanded="true"] .collapse-arrow {
+            transform: translateY(-50%) rotate(180deg);
+        }
+        .sidebar .nav-sub {
+            padding-left: 48px; font-size: 12px;
+        }
+        .sidebar .nav-parent.active-parent {
+            color: #fff; background: rgba(74,158,255,.15);
+            border-left: 3px solid #4a9eff;
+        }
+
         /* ── Metric strip (compact stats) ── */
         .metric-strip {
             display: flex; gap: 0; flex-wrap: wrap;
@@ -209,30 +228,52 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.path.startswith('/submissions') %}active{% endif %}" href="{{ url_for('submissions_list') }}">
-                    <i class="bi bi-file-text"></i>稿件管理
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.path.startswith('/assignments') %}active{% endif %}" href="{{ url_for('assignments_list') }}">
-                    <i class="bi bi-send"></i>派稿管理
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.path.startswith('/email') %}active{% endif %}" href="{{ url_for('email_inbox') }}">
-                    <i class="bi bi-envelope"></i>邮件收稿
+                <a class="nav-link {% if request.path == url_for('intake_manage') %}active{% endif %}" href="{{ url_for('intake_manage') }}">
+                    <i class="bi bi-inbox"></i>收稿管理
                     <span id="navEmailBadge" class="badge rounded-pill bg-danger ms-1 d-none" style="font-size:10px">0</span>
                 </a>
             </li>
+            <!-- 审稿管理 (collapsible) -->
             <li class="nav-item">
-                <a class="nav-link {% if request.path.startswith('/authors') %}active{% endif %}" href="{{ url_for('authors_list') }}">
-                    <i class="bi bi-people"></i>作者管理
+                <a class="nav-link nav-parent {% if request.path.startswith('/reviews/round/') %}active-parent{% endif %}"
+                   href="#reviewSubmenu" data-bs-toggle="collapse" role="button"
+                   aria-expanded="{{ 'true' if request.path.startswith('/reviews/round/') else 'false' }}">
+                    <i class="bi bi-clipboard-check"></i>审稿管理
+                    <i class="bi bi-chevron-down collapse-arrow"></i>
                 </a>
+                <div class="collapse {% if request.path.startswith('/reviews/round/') %}show{% endif %}" id="reviewSubmenu">
+                    <a class="nav-link nav-sub {% if request.path == url_for('review_round_manage', round_name='一审') %}active{% endif %}"
+                       href="{{ url_for('review_round_manage', round_name='一审') }}">
+                        <i class="bi bi-1-circle"></i>一审管理
+                    </a>
+                    <a class="nav-link nav-sub {% if request.path == url_for('review_round_manage', round_name='二审') %}active{% endif %}"
+                       href="{{ url_for('review_round_manage', round_name='二审') }}">
+                        <i class="bi bi-2-circle"></i>二审管理
+                    </a>
+                    <a class="nav-link nav-sub {% if request.path == url_for('review_round_manage', round_name='三审') %}active{% endif %}"
+                       href="{{ url_for('review_round_manage', round_name='三审') }}">
+                        <i class="bi bi-3-circle"></i>三审管理
+                    </a>
+                </div>
             </li>
+            <!-- 人员管理 (collapsible) -->
             <li class="nav-item">
-                <a class="nav-link {% if request.path.startswith('/editors') %}active{% endif %}" href="{{ url_for('editors_list') }}">
-                    <i class="bi bi-person-badge"></i>编辑管理
+                <a class="nav-link nav-parent {% if request.path.startswith('/authors') or request.path.startswith('/editors') %}active-parent{% endif %}"
+                   href="#peopleSubmenu" data-bs-toggle="collapse" role="button"
+                   aria-expanded="{{ 'true' if request.path.startswith('/authors') or request.path.startswith('/editors') else 'false' }}">
+                    <i class="bi bi-people"></i>人员管理
+                    <i class="bi bi-chevron-down collapse-arrow"></i>
                 </a>
+                <div class="collapse {% if request.path.startswith('/authors') or request.path.startswith('/editors') %}show{% endif %}" id="peopleSubmenu">
+                    <a class="nav-link nav-sub {% if request.path.startswith('/authors') %}active{% endif %}"
+                       href="{{ url_for('authors_list') }}">
+                        <i class="bi bi-person"></i>作者管理
+                    </a>
+                    <a class="nav-link nav-sub {% if request.path.startswith('/editors') %}active{% endif %}"
+                       href="{{ url_for('editors_list') }}">
+                        <i class="bi bi-person-badge"></i>编辑管理
+                    </a>
+                </div>
             </li>
             <li class="nav-item"><hr style="border-color:rgba(255,255,255,.08);margin:4px 16px"></li>
             {% endif %}
@@ -264,11 +305,22 @@
             <ul class="navbar-nav">
                 {% if current_user.is_admin %}
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">系统总览</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('submissions_list') }}">稿件管理</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('assignments_list') }}">派稿管理</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('authors_list') }}">作者管理</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('editors_list') }}">编辑管理</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('email_inbox') }}"><i class="bi bi-envelope"></i> 邮件收稿 <span id="navEmailBadge2" class="badge rounded-pill bg-danger ms-1 d-none" style="font-size:10px">0</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('intake_manage') }}"><i class="bi bi-envelope"></i> 收稿管理 <span id="navEmailBadge2" class="badge rounded-pill bg-danger ms-1 d-none" style="font-size:10px">0</span></a></li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#mobileReview" data-bs-toggle="collapse">审稿管理 ▾</a>
+                    <div class="collapse" id="mobileReview">
+                        <a class="nav-link ps-4" href="{{ url_for('review_round_manage', round_name='一审') }}">一审管理</a>
+                        <a class="nav-link ps-4" href="{{ url_for('review_round_manage', round_name='二审') }}">二审管理</a>
+                        <a class="nav-link ps-4" href="{{ url_for('review_round_manage', round_name='三审') }}">三审管理</a>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#mobilePeople" data-bs-toggle="collapse">人员管理 ▾</a>
+                    <div class="collapse" id="mobilePeople">
+                        <a class="nav-link ps-4" href="{{ url_for('authors_list') }}">作者管理</a>
+                        <a class="nav-link ps-4" href="{{ url_for('editors_list') }}">编辑管理</a>
+                    </div>
+                </li>
                 {% endif %}
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('editor_dashboard') }}">我的审稿</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">退出登录</a></li>

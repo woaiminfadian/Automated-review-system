@@ -49,7 +49,7 @@
         <div class="table-responsive">
             <table class="table table-hover mb-0" id="assignTable">
                 <thead>
-                    <tr><th>轮次</th><th>稿件标题</th><th>学科</th><th>作者</th><th>派稿日</th><th>状态</th><th>总分</th><th>结果</th><th style="width:90px">操作</th></tr>
+                    <tr><th>轮次</th><th>稿件标题</th><th>学科</th>{% if current_user.is_admin %}<th>作者</th>{% endif %}<th>派稿日</th><th>状态</th><th>总分</th><th>结果</th><th style="width:90px">操作</th></tr>
                 </thead>
                 <tbody>
                     {% for a in assigns %}
@@ -57,7 +57,9 @@
                         <td><span class="badge bg-light text-dark">{{ a.round }}</span></td>
                         <td><a href="{{ url_for('editor_review', aid=a.id) }}" class="text-decoration-none fw500 text-ellipsis" style="max-width:200px" title="{{ a.title }}">{{ a.title[:40] }}{% if a.title|length > 40 %}…{% endif %}</a></td>
                         <td><span class="badge bg-light text-dark">{{ a.field }}</span></td>
+                        {% if current_user.is_admin %}
                         <td class="text-muted">{{ a.author_name or '-' }}</td>
+                        {% endif %}
                         <td class="text-muted fs-small">{{ a.assigned_date }}</td>
                         <td><span class="badge badge-status
                             {% if a.status == '待审' %}bg-secondary text-white

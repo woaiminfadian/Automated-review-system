@@ -39,10 +39,10 @@
         <div class="metric-num text-green">{{ done_cnt }}</div>
         <div class="metric-label">已录用</div>
     </a>
-    <div class="metric-item" style="border-right:none">
+    <a href="{{ url_for('editors_list') }}" class="metric-item" style="border-right:none">
         <div class="metric-num">{{ editor_count }}</div>
         <div class="metric-label">在岗编辑</div>
-    </div>
+    </a>
 </div>
 
 <div class="row g-3">
@@ -94,6 +94,24 @@
                 </div>
             </div>
         </div>
+
+        <!-- 最近活动 -->
+        {% if recent_activity %}
+        <div class="card" style="margin-bottom:12px">
+            <div class="card-header"><i class="bi bi-clock-history me-1"></i>最近动态</div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for act in recent_activity[:8] %}
+                    <div class="list-group-item py-2 px-3" style="font-size:12px;border:0">
+                        <span class="text-muted">{{ act.created_at or '' }}</span>
+                        <span class="badge bg-light text-dark me-1">{{ act.action }}</span>
+                        {{ act.detail or '' }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- 编辑工作量 -->
@@ -130,24 +148,6 @@
                 {% endif %}
             </div>
         </div>
-
-        <!-- 最近活动 -->
-        {% if recent_activity %}
-        <div class="card" style="margin-bottom:12px">
-            <div class="card-header"><i class="bi bi-clock-history me-1"></i>最近动态</div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    {% for act in recent_activity[:8] %}
-                    <div class="list-group-item py-2 px-3" style="font-size:12px;border:0">
-                        <span class="text-muted">{{ act.created_at or '' }}</span>
-                        <span class="badge bg-light text-dark me-1">{{ act.action }}</span>
-                        {{ act.detail or '' }}
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
     </div>
 </div>
 {% endblock %}
