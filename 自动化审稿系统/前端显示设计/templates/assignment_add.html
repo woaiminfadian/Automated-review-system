@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-header">
     <h4>新建派稿</h4>
-    <a href="{{ url_for('assignments_list') }}" class="text-muted text-decoration-none fs-small">← 返回派稿管理</a>
+    <a href="{{ url_for('review_round_manage', round_name='一审') }}" class="text-muted text-decoration-none fs-small">← 返回一审管理</a>
 </div>
 
 <div class="row g-3">
@@ -74,7 +74,7 @@
 
                     <button type="submit" class="btn btn-primary" id="submitBtn"><i class="bi bi-send"></i> 派稿</button>
                     <span id="submitHint" class="text-muted fs-small ms-2"></span>
-                    <a href="{{ url_for('assignments_list') }}" class="btn btn-sm btn-outline-secondary ms-2">取消</a>
+                    <a href="{{ url_for('review_round_manage', round_name='一审') }}" class="btn btn-sm btn-outline-secondary ms-2">取消</a>
                 </form>
             </div>
         </div>

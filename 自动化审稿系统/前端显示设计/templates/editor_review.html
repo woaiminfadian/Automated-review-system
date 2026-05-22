@@ -143,31 +143,31 @@
 
 {% if assign.status in ('待审', '审稿中') %}
 <!-- 审稿表单 -->
-<form method="POST" enctype="multipart/form-data">
+<form method="POST" enctype="multipart/form-data" id="reviewForm" onsubmit="return validateForm()" onkeydown="if(event.key==='Enter' && event.target.tagName!=='TEXTAREA'){event.preventDefault();return false;}">
     <!-- 评分（紧凑横向） -->
     <div class="card mb-2">
-        <div class="card-header" style="font-size:12px">评分</div>
+        <div class="card-header" style="font-size:12px">评分 <span class="text-danger">*</span></div>
         <div class="card-body py-2">
             <div class="row g-2">
                 <div class="col-3">
-                    <label class="form-label fs-small mb-1">选题 (0-30)</label>
-                    <input type="number" name="score_topic" class="form-control form-control-sm" step="0.1" min="0" max="30" placeholder="0-30" value="{{ assign.score_topic if assign.score_topic else '' }}">
+                    <label class="form-label fs-small mb-1">选题 (0-30) <span class="text-danger">*</span></label>
+                    <input type="number" name="score_topic" id="score_topic" class="form-control form-control-sm" step="0.1" min="0" max="30" placeholder="0-30" value="{{ assign.score_topic if assign.score_topic else '' }}">
                 </div>
                 <div class="col-3">
-                    <label class="form-label fs-small mb-1">论证 (0-30)</label>
-                    <input type="number" name="score_argument" class="form-control form-control-sm" step="0.1" min="0" max="30" placeholder="0-30" value="{{ assign.score_argument if assign.score_argument else '' }}">
+                    <label class="form-label fs-small mb-1">论证 (0-30) <span class="text-danger">*</span></label>
+                    <input type="number" name="score_argument" id="score_argument" class="form-control form-control-sm" step="0.1" min="0" max="30" placeholder="0-30" value="{{ assign.score_argument if assign.score_argument else '' }}">
                 </div>
                 <div class="col-3">
-                    <label class="form-label fs-small mb-1">创新 (0-20)</label>
-                    <input type="number" name="score_innovation" class="form-control form-control-sm" step="0.1" min="0" max="20" placeholder="0-20" value="{{ assign.score_innovation if assign.score_innovation else '' }}">
+                    <label class="form-label fs-small mb-1">创新 (0-20) <span class="text-danger">*</span></label>
+                    <input type="number" name="score_innovation" id="score_innovation" class="form-control form-control-sm" step="0.1" min="0" max="20" placeholder="0-20" value="{{ assign.score_innovation if assign.score_innovation else '' }}">
                 </div>
                 <div class="col-3">
-                    <label class="form-label fs-small mb-1">规范 (0-20)</label>
-                    <input type="number" name="score_standard" class="form-control form-control-sm" step="0.1" min="0" max="20" placeholder="0-20" value="{{ assign.score_standard if assign.score_standard else '' }}">
+                    <label class="form-label fs-small mb-1">规范 (0-20) <span class="text-danger">*</span></label>
+                    <input type="number" name="score_standard" id="score_standard" class="form-control form-control-sm" step="0.1" min="0" max="20" placeholder="0-20" value="{{ assign.score_standard if assign.score_standard else '' }}">
                 </div>
                 <div class="col-3">
-                    <label class="form-label fs-small mb-1 fw-bold">总分</label>
-                    <input type="number" name="score_total" class="form-control form-control-sm" step="0.1" min="0" max="100" placeholder="0-100" value="{{ assign.score_total if assign.score_total else '' }}">
+                    <label class="form-label fs-small mb-1 fw-bold">总分 <span class="text-danger">*</span></label>
+                    <input type="number" name="score_total" id="score_total" class="form-control form-control-sm" step="0.1" min="0" max="100" placeholder="0-100" value="{{ assign.score_total if assign.score_total else '' }}">
                 </div>
             </div>
         </div>
@@ -175,10 +175,10 @@
 
     <!-- 审定意见 -->
     <div class="card mb-2">
-        <div class="card-header" style="font-size:12px">审定意见</div>
+        <div class="card-header" style="font-size:12px">审定意见 <span class="text-danger">*</span></div>
         <div class="card-body py-2">
             <div class="mb-2">
-                <div class="btn-group btn-group-sm" role="group">
+                <div class="btn-group btn-group-sm" role="group" id="opinionGroup">
                     <input type="radio" class="btn-check" name="review_opinion" value="录用" id="op_accept" {% if assign.review_opinion == '录用' %}checked{% endif %}>
                     <label class="btn btn-outline-success" for="op_accept">录用</label>
                     {% if assign.round != '三审' %}
@@ -212,10 +212,59 @@
         </div>
     </div>
 
+    <div id="formErrors" class="alert alert-danger py-1 mb-2 d-none" style="font-size:12px"></div>
+
     <div class="d-flex gap-2 justify-content-end">
         <a href="{{ url_for('editor_dashboard') }}" class="btn btn-sm btn-outline-secondary">取消</a>
         <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> 提交审稿结果</button>
     </div>
 </form>
 {% endif %}
+
+{% if assign.status == '已返回' and round_status == '待主编决定' %}
+<div class="card mt-3 border-start-warning">
+    <div class="card-body py-2 d-flex justify-content-between align-items-center">
+        <div>
+            <span class="text-warning fw-bold" style="font-size:13px"><i class="bi bi-exclamation-triangle"></i> 主编尚未汇总决定，你可以撤回已提交的审稿意见</span>
+        </div>
+        <form method="POST" action="{{ url_for('editor_retract', aid=assign.id) }}" onsubmit="return confirm('确认撤回审稿意见？撤回后可重新填写提交。')">
+            <button type="submit" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-counterclockwise"></i> 撤回审稿</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function validateForm() {
+    var missing = [];
+    var fields = [
+        {id: 'score_topic', name: '选题'},
+        {id: 'score_argument', name: '论证'},
+        {id: 'score_innovation', name: '创新'},
+        {id: 'score_standard', name: '规范'},
+        {id: 'score_total', name: '总分'}
+    ];
+    for (var i = 0; i < fields.length; i++) {
+        var el = document.getElementById(fields[i].id);
+        if (!el || el.value.trim() === '') {
+            missing.push(fields[i].name);
+        }
+    }
+    var opinion = document.querySelector('input[name="review_opinion"]:checked');
+    if (!opinion) {
+        missing.push('审定意见');
+    }
+    var errDiv = document.getElementById('formErrors');
+    if (missing.length > 0) {
+        errDiv.textContent = '请完成以下必填项：' + missing.join('、');
+        errDiv.classList.remove('d-none');
+        errDiv.scrollIntoView({behavior: 'smooth', block: 'center'});
+        return false;
+    }
+    errDiv.classList.add('d-none');
+    return true;
+}
+</script>
 {% endblock %}

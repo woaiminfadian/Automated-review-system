@@ -3,12 +3,12 @@
 {% block content %}
 <div class="page-header">
     <h4>录入新稿件</h4>
-    <a href="{{ url_for('submissions_list') }}" class="text-muted text-decoration-none fs-small">← 返回稿件列表</a>
+    <a href="{{ url_for('intake_manage') }}" class="text-muted text-decoration-none fs-small">← 返回收稿管理</a>
 </div>
 
 <div class="card">
     <div class="card-body">
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             <div class="row g-3">
                 <div class="col-12">
                     <label class="form-label">稿件标题 <span class="text-danger">*</span></label>
@@ -45,6 +45,11 @@
                         <option value="待处理">待处理</option>
                         {% for s in statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
                     </select>
+                </div>
+
+                <div class="col-md-8">
+                    <label class="form-label">稿件附件 <span class="text-muted fs-small">（可选，支持 doc/docx/pdf）</span></label>
+                    <input type="file" name="attachment" class="form-control" accept=".doc,.docx,.pdf">
                 </div>
             </div>
 
@@ -123,7 +128,7 @@
             <hr>
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> 保存稿件</button>
-                <a href="{{ url_for('submissions_list') }}" class="btn btn-outline-secondary">取消</a>
+                <a href="{{ url_for('intake_manage') }}" class="btn btn-outline-secondary">取消</a>
             </div>
         </form>
     </div>

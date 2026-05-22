@@ -5,10 +5,12 @@
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
         <h4>稿件详情 #{{ sub.id }}</h4>
-        {% if request.args.get('back') == 'assignments' %}
-        <a href="{{ url_for('assignments_list') }}" class="text-muted text-decoration-none fs-small">← 返回派稿管理</a>
+        {% if request.args.get('back') == 'intake' %}
+        <a href="{{ url_for('intake_manage') }}" class="text-muted text-decoration-none fs-small">← 返回收稿管理</a>
+        {% elif request.args.get('back') == 'round_manage' %}
+        <a href="javascript:history.back()" class="text-muted text-decoration-none fs-small">← 返回审稿管理</a>
         {% else %}
-        <a href="{{ url_for('submissions_list') }}" class="text-muted text-decoration-none fs-small">← 返回稿件列表</a>
+        <a href="{{ url_for('intake_manage') }}" class="text-muted text-decoration-none fs-small">← 返回收稿管理</a>
         {% endif %}
     </div>
     <div class="action-bar">
