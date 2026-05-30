@@ -7,9 +7,23 @@ from email.message import Message
 from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
+from html.parser import HTMLParser
+
 from .config import AppConfig
 from .models import AttachmentData
 from .utils import extract_docx_text_from_bytes, normalize_whitespace
+
+
+def _strip_html(html_text: str) -> str:
+    class _Stripper(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self._parts: list[str] = []
+        def handle_data(self, data):
+            self._parts.append(data)
+    s = _Stripper()
+    s.feed(html_text)
+    return "".join(s._parts)
 
 
 def decode_mime_header(value: Optional[str]) -> str:
@@ -21,18 +35,27 @@ def decode_mime_header(value: Optional[str]) -> str:
 def extract_body_text(message: Message) -> str:
     if message.is_multipart():
         parts: List[str] = []
+        seen_text_plain = False
         for part in message.walk():
             content_disposition = (part.get("Content-Disposition") or "").lower()
             if "attachment" in content_disposition:
                 continue
-            if part.get_content_type() in {"text/plain", "text/html"}:
+            ct = part.get_content_type()
+            if ct in {"text/plain", "text/html"}:
+                if ct == "text/html" and seen_text_plain:
+                    continue
                 payload = part.get_payload(decode=True) or b""
                 charset = part.get_content_charset() or "utf-8"
                 try:
                     text = payload.decode(charset, errors="ignore")
                 except LookupError:
                     text = payload.decode("utf-8", errors="ignore")
-                parts.append(text)
+                if ct == "text/html":
+                    text = _strip_html(text)
+                if text.strip():
+                    if ct == "text/plain":
+                        seen_text_plain = True
+                    parts.append(text)
         return normalize_whitespace("\n".join(parts))
     payload = message.get_payload(decode=True) or b""
     charset = message.get_content_charset() or "utf-8"

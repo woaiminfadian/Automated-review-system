@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-中国政法大学研究生学报私法组投稿自动处理工具，位于 `0. 自动化工具/journal_automation/`。
+中国政法大学研究生学报私法组投稿自动处理工具，位于 `自动化审稿系统/后端审稿系统/journal_automation/`。
 
 ### 架构
 
@@ -19,11 +19,10 @@
 
 ## 待办事项
 
-- [ ] 实现 sync-assignments 模块（派稿分派记录）
-- [ ] 实现 sync-reviews 模块（编辑审稿回复导入）
-- [ ] 实现 sync-notifications 模块（作者通知同步）
 - [ ] 修复 IMAP "Unsafe Login" 问题（126邮箱安全保护）
 - [ ] 后续可试跑一次实际 sync-submissions，观察修复效果
+
+> 注：sync-assignments / sync-reviews / sync-notifications 三个模块的概念已在 Web 端（`webapp.py`）通过 `review_rounds`、`assignments`、`author_notifications` 表实现。。命令行自动化链路的对应模块尚未开发，如需统一两条链路可重新评估。
 
 ## 会话记录
 

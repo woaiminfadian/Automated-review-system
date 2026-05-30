@@ -6,21 +6,39 @@
     <a href="{{ url_for('intake_manage') }}" class="text-muted text-decoration-none fs-small">← 返回收稿管理</a>
 </div>
 
+{% if staging %}
+<div class="alert alert-info d-flex align-items-center gap-2 py-2 mb-2">
+    <i class="bi bi-envelope-check"></i>
+    <span>从邮件登记：<strong>{{ staging.subject_line or '无主题' }}</strong>（发件人：{{ staging.sender_name or staging.sender or '-' }}）</span>
+</div>
+{% endif %}
+
+{% if staging and staging.body_text %}
+<div class="card mb-2">
+    <div class="card-header py-1">
+        <span><i class="bi bi-envelope-paper"></i> 邮件正文</span>
+    </div>
+    <div class="card-body py-2" style="max-height:300px;overflow-y:auto;white-space:pre-wrap;font-size:13px">{{ staging.body_text }}</div>
+</div>
+{% endif %}
+
 <div class="card">
     <div class="card-body">
         <form method="POST" enctype="multipart/form-data">
+            {% if staging %}<input type="hidden" name="staging_id" value="{{ staging.id }}">{% endif %}
             <div class="row g-3">
                 <div class="col-12">
                     <label class="form-label">稿件标题 <span class="text-danger">*</span></label>
-                    <input type="text" name="title" class="form-control" required>
+                    <input type="text" name="title" class="form-control" required value="{{ staging.title if staging else '' }}">
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label">学科方向 <span class="text-danger">*</span></label>
                     <select name="field" class="form-select" required>
                         <option value="">请选择</option>
+                        {% set sel_field = staging.field if staging else '' %}
                         {% for f in fields %}
-                        <option value="{{ f }}">{{ f }}</option>
+                        <option value="{{ f }}" {% if f == sel_field %}selected{% endif %}>{{ f }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -36,7 +54,7 @@
 
                 <div class="col-md-4">
                     <label class="form-label">收稿日期</label>
-                    <input type="text" name="received_date" class="form-control" placeholder="YYYY.MM.DD (默认今天)" value="{{ request.form.get('received_date', '') }}">
+                    <input type="text" name="received_date" class="form-control" placeholder="YYYY.MM.DD (默认今天)" value="{{ staging.sent_at if staging else request.form.get('received_date', '') }}">
                 </div>
 
                 <div class="col-md-4">
@@ -48,26 +66,41 @@
                 </div>
 
                 <div class="col-md-8">
-                    <label class="form-label">稿件附件 <span class="text-muted fs-small">（可选，支持 doc/docx/pdf）</span></label>
+                    <label class="form-label">
+                        稿件附件 <span class="text-muted fs-small">（支持 doc/docx/pdf）</span>
+                        {% if staging_attachments %}
+                        <span class="badge bg-info ms-1">{{ staging_attachments|length }} 个邮件附件将自动导入</span>
+                        {% endif %}
+                    </label>
                     <input type="file" name="attachment" class="form-control" accept=".doc,.docx,.pdf">
+                    {% if staging_attachments %}
+                    <div class="mt-1 fs-small text-muted">
+                        邮件附件：
+                        {% for att in staging_attachments %}
+                        <span class="badge bg-light text-dark me-1">{{ att.filename }}{% if att.content_type %} ({{ att.content_type }}){% endif %}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
             <hr>
             <h6 class="fw-bold">第一作者 <span class="text-danger">*</span></h6>
+            {% set a1 = staging_authors[0] if staging_authors|length > 0 else none %}
+            {% set a1_is_dict = a1 is mapping %}
             <div class="row g-2 mb-2">
                 <div class="col-auto">
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="author1_select" value="existing" checked onchange="toggleAuthor1()">
+                        <input class="form-check-input" type="radio" name="author1_select" value="existing" {% if not staging %}checked{% endif %} onchange="toggleAuthor1()">
                         <label class="form-check-label">已有作者</label>
                     </div>
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="author1_select" value="new" onchange="toggleAuthor1()">
+                        <input class="form-check-input" type="radio" name="author1_select" value="new" {% if staging %}checked{% endif %} onchange="toggleAuthor1()">
                         <label class="form-check-label">新建作者</label>
                     </div>
                 </div>
             </div>
-            <div id="author1_existing" class="row g-2">
+            <div id="author1_existing" class="row g-2 {% if staging %}d-none{% endif %}">
                 <div class="col-md-6">
                     <select name="author1_id" class="form-select">
                         <option value="">请选择</option>
@@ -77,36 +110,38 @@
                     </select>
                 </div>
             </div>
-            <div id="author1_new" class="row g-2 d-none">
-                <div class="col-md-3"><input type="text" name="author1_name" class="form-control" placeholder="姓名"></div>
-                <div class="col-md-3"><input type="text" name="author1_email" class="form-control" placeholder="邮箱"></div>
-                <div class="col-md-3"><input type="text" name="author1_phone" class="form-control" placeholder="电话"></div>
-                <div class="col-md-3"><input type="text" name="author1_affiliation" class="form-control" placeholder="学校/单位"></div>
-                <div class="col-md-3 mt-2"><input type="text" name="author1_grade" class="form-control" placeholder="身份(硕士/博士/教师)"></div>
+            <div id="author1_new" class="row g-2 {% if not staging %}d-none{% endif %}">
+                <div class="col-md-3"><input type="text" name="author1_name" class="form-control" placeholder="姓名" value="{{ a1.name if a1_is_dict else a1 or '' }}"></div>
+                <div class="col-md-3"><input type="text" name="author1_email" class="form-control" placeholder="邮箱" value="{{ a1.email if a1_is_dict else (staging.sender or '') }}"></div>
+                <div class="col-md-3"><input type="text" name="author1_phone" class="form-control" placeholder="电话" value="{{ a1.phone if a1_is_dict else '' }}"></div>
+                <div class="col-md-3"><input type="text" name="author1_affiliation" class="form-control" placeholder="学校/单位" value="{{ a1.affiliation if a1_is_dict else '' }}"></div>
+                <div class="col-md-3 mt-2"><input type="text" name="author1_grade" class="form-control" placeholder="身份(硕士/博士/教师)" value="{{ a1.grade if a1_is_dict else '' }}"></div>
             </div>
 
             <hr>
             <h6 class="fw-bold">第二作者 <span class="text-muted fs-small fw-normal">（可选）</span></h6>
+            {% set a2 = staging_authors[1] if staging_authors|length > 1 else none %}
+            {% set a2_is_dict = a2 is mapping %}
             <div class="mb-2">
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="hasAuthor2" name="has_author2" value="yes" onchange="toggleAuthor2()">
+                    <input class="form-check-input" type="checkbox" id="hasAuthor2" name="has_author2" value="yes" {% if a2 %}checked{% endif %} onchange="toggleAuthor2()">
                     <label class="form-check-label" for="hasAuthor2">有第二作者</label>
                 </div>
             </div>
-            <div id="author2_section" class="d-none">
+            <div id="author2_section" class="{% if not a2 %}d-none{% endif %}">
                 <div class="row g-2 mb-2">
                     <div class="col-auto">
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="author2_select" value="existing" checked onchange="toggleAuthor2Mode()">
+                            <input class="form-check-input" type="radio" name="author2_select" value="existing" {% if not a2 %}checked{% endif %} onchange="toggleAuthor2Mode()">
                             <label class="form-check-label">已有作者</label>
                         </div>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="author2_select" value="new" onchange="toggleAuthor2Mode()">
+                            <input class="form-check-input" type="radio" name="author2_select" value="new" {% if a2 %}checked{% endif %} onchange="toggleAuthor2Mode()">
                             <label class="form-check-label">新建</label>
                         </div>
                     </div>
                 </div>
-                <div id="author2_existing" class="row g-2">
+                <div id="author2_existing" class="row g-2 {% if a2 %}d-none{% endif %}">
                     <div class="col-md-6">
                         <select name="author2_id" class="form-select">
                             <option value="">请选择</option>
@@ -116,12 +151,12 @@
                         </select>
                     </div>
                 </div>
-                <div id="author2_new" class="row g-2 d-none">
-                    <div class="col-md-3"><input type="text" name="author2_name" class="form-control" placeholder="姓名"></div>
-                    <div class="col-md-3"><input type="text" name="author2_email" class="form-control" placeholder="邮箱"></div>
-                    <div class="col-md-3"><input type="text" name="author2_phone" class="form-control" placeholder="电话"></div>
-                    <div class="col-md-3"><input type="text" name="author2_affiliation" class="form-control" placeholder="学校/单位"></div>
-                    <div class="col-md-3 mt-2"><input type="text" name="author2_grade" class="form-control" placeholder="身份(硕士/博士/教师)"></div>
+                <div id="author2_new" class="row g-2 {% if not a2 %}d-none{% endif %}">
+                    <div class="col-md-3"><input type="text" name="author2_name" class="form-control" placeholder="姓名" value="{{ a2.name if a2_is_dict else a2 or '' }}"></div>
+                    <div class="col-md-3"><input type="text" name="author2_email" class="form-control" placeholder="邮箱" value="{{ a2.email if a2_is_dict else '' }}"></div>
+                    <div class="col-md-3"><input type="text" name="author2_phone" class="form-control" placeholder="电话" value="{{ a2.phone if a2_is_dict else '' }}"></div>
+                    <div class="col-md-3"><input type="text" name="author2_affiliation" class="form-control" placeholder="学校/单位" value="{{ a2.affiliation if a2_is_dict else '' }}"></div>
+                    <div class="col-md-3 mt-2"><input type="text" name="author2_grade" class="form-control" placeholder="身份(硕士/博士/教师)" value="{{ a2.grade if a2_is_dict else '' }}"></div>
                 </div>
             </div>
 

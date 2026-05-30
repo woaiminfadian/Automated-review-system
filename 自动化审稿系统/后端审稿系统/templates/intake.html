@@ -57,7 +57,8 @@
                         <td class="text-muted fs-small">{{ em.sent_at or em.created_at[:10] }}</td>
                         <td>
                             <div class="d-flex gap-1">
-                                <a href="{{ url_for('submission_add') }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:11px"><i class="bi bi-pencil"></i> 登记为稿件</a>
+                                <a href="{{ url_for('submission_add', staging_id=em.id) }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:11px"><i class="bi bi-pencil"></i> 登记为稿件</a>
+                                <form method="POST" action="{{ url_for('staging_ignore', eid=em.id) }}" style="display:inline" onsubmit="return confirm('确认忽略此邮件？')"><button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:11px"><i class="bi bi-x-circle"></i> 忽略</button></form>
                             </div>
                         </td>
                     </tr>

@@ -1,6 +1,6 @@
 # 投稿自动处理工具
 
-这套工具会在当前工作目录下复用你已经在使用的文件夹、总表和模板，完成三件事：
+这套工具复用已有的文件夹、总表和模板，完成三件事：
 
 - `sync-submissions`：同步 126 邮箱投稿，归档附件，并写入总表。
 - `generate-reply-materials`：为指定稿件生成派稿目录、审稿评分表和作者回复草稿。
@@ -8,16 +8,14 @@
 
 ## 1. 初始化
 
-1. 复制 [automation.config.example.json](/Users/zhangruiming/Desktop/法大研究生学报/0.%20自动化工具/automation.config.example.json) 为 `automation.config.json`。
+1. 复制 `automation.config.example.json` 为 `automation.config.json`。
 2. 把 `username` 改成你的 126 邮箱，把 `password` 改成 126 邮箱授权码。
 3. 确认总表、模板路径没有改名。
 
 ## 2. 同步投稿邮件
 
-先进入 [0. 自动化工具](/Users/zhangruiming/Desktop/法大研究生学报/0.%20自动化工具) 目录，再运行：
-
 ```bash
-cd "/Users/zhangruiming/Desktop/法大研究生学报/0. 自动化工具"
+cd "/Users/zhangruiming/Desktop/法大研究生学报/自动化审稿系统/后端审稿系统"
 ./run_journal_automation.sh sync-submissions
 ```
 
@@ -30,8 +28,8 @@ cd "/Users/zhangruiming/Desktop/法大研究生学报/0. 自动化工具"
 执行后会：
 
 - 把原始邮件存进 `.automation/raw_mail/`
-- 把稿件归档到 `1. 未处理来稿/`
-- 把信息写入 `2025.04私法组审稿（2025—2026学年）.xlsx`
+- 把稿件归档到 `../../1. 未处理来稿/`
+- 把信息写入 Excel 总表
 - 把待人工确认项目写入 `.automation/issues/`
 - 把状态写入 `.automation/journal_automation.sqlite3`
 
@@ -52,7 +50,7 @@ cd "/Users/zhangruiming/Desktop/法大研究生学报/0. 自动化工具"
 
 执行后会：
 
-- 创建 `2. 派稿及回复/YYYYMMDD/【阶段】学科-作者-题目/`
+- 创建 `../../2. 派稿及回复/YYYYMMDD/【阶段】学科-作者-题目/`
 - 复制当前稿件进去
 - 生成一份已填基础信息的审稿评分表
 - 在 `.automation/drafts/` 生成一封 `.eml` 作者回复草稿
@@ -82,6 +80,10 @@ cd "/Users/zhangruiming/Desktop/法大研究生学报/0. 自动化工具"
 ## 6. 当前边界
 
 - 第一阶段不会自动发信，只会生成草稿。
-- 第一阶段不会自动匿名化正文，只会标记“疑似未匿名”。
+- 第一阶段不会自动匿名化正文，只会标记"疑似未匿名"。
 - 学科无法可靠识别时，会进入待人工确认列表，不自动派稿。
 - `.docx` 正文识别效果最好，老式 `.doc` 目前主要依赖文件名和邮件正文信息。
+
+## 注意
+
+此工具为命令行自动化链路，与 Web 端（`webapp.py` / `journal.db`）是两套独立的数据链路。Web 端是当前的主要工作方式，命令行工具作为导入、导出或辅助工具使用。详见 `../AGENTS.md`。

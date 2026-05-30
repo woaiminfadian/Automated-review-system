@@ -7,7 +7,7 @@
 import sqlite3
 import os
 
-DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "journal.db")
+DB = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "journal.db")
 
 
 def migrate():

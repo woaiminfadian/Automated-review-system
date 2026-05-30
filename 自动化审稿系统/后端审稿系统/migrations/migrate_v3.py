@@ -3,7 +3,7 @@
 """
 import sqlite3, os
 
-DB_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(DB_DIR, "journal.db")
 
 

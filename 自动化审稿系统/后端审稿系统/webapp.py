@@ -15,7 +15,7 @@ DB_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(DB_DIR, "journal.db")
 UPLOAD_DIR = os.path.join(DB_DIR, "uploads")
 
-app = Flask(__name__, template_folder="../前端显示设计/templates")
+app = Flask(__name__, template_folder="templates")
 app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24).hex())
 app.config["UPLOAD_FOLDER"] = UPLOAD_DIR
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50MB max upload
@@ -657,6 +657,22 @@ def submission_detail(sid):
 def submission_add():
     conn = get_conn()
     authors = conn.execute("SELECT id, name, affiliation FROM authors ORDER BY name").fetchall()
+    staging_id = request.args.get("staging_id", type=int) or request.form.get("staging_id", type=int)
+    staging = None
+    staging_attachments = []
+    staging_authors = []
+    if staging_id:
+        staging = conn.execute("SELECT * FROM email_staging WHERE id=?", (staging_id,)).fetchone()
+        if staging:
+            try:
+                staging_attachments = json.loads(staging["attachments_json"] or "[]")
+            except Exception:
+                staging_attachments = []
+            try:
+                staging_authors = json.loads(staging["authors_json"] or "[]")
+            except Exception:
+                staging_authors = []
+
     if request.method == "POST":
         title = request.form.get("title", "").strip()
         field = request.form.get("field", "").strip()
@@ -664,7 +680,9 @@ def submission_add():
             flash("请填写标题和学科方向", "danger")
             conn.close()
             return render_template("submission_add.html", fields=FIELDS, authors=authors,
-                                   statuses=STATUSES)
+                                   statuses=STATUSES, staging=staging,
+                                   staging_attachments=staging_attachments,
+                                   staging_authors=staging_authors)
         sub_type = request.form.get("submission_type", "正常来稿")
         rdate = request.form.get("received_date", "").strip() or datetime.now().strftime("%Y.%m.%d")
         status = request.form.get("status", "待处理")
@@ -704,9 +722,10 @@ def submission_add():
                     )
                     aid2 = cur.lastrowid
 
+        notes = request.form.get("notes", "").strip()
         cur = conn.execute(
-            "INSERT INTO submissions (title, field, submission_type, author1_id, author2_id, received_date, status) VALUES (?,?,?,?,?,?,?)",
-            (title, field, sub_type, aid1, aid2, rdate, status),
+            "INSERT INTO submissions (title, field, submission_type, author1_id, author2_id, received_date, status, notes) VALUES (?,?,?,?,?,?,?,?)",
+            (title, field, sub_type, aid1, aid2, rdate, status, notes),
         )
         sid = cur.lastrowid
 
@@ -726,14 +745,85 @@ def submission_add():
                 (sid, attachment.filename, rel_path, "原稿", "manual"),
             )
 
+        # 如果是从邮件登记，迁移邮件附件并更新 staging 状态
+        if staging_id and staging and staging_attachments:
+            final_dir = os.path.join(UPLOAD_DIR, f"submission_{sid}")
+            os.makedirs(final_dir, exist_ok=True)
+            from journal_automation.utils import sanitize_filename, ensure_unique_path
+            from pathlib import Path
+
+            has_original = False
+            for att in staging_attachments:
+                src = os.path.join(DB_DIR, att["staged_path"])
+                if not os.path.exists(src):
+                    continue
+                raw_name = att.get("filename") or os.path.basename(att["staged_path"])
+                safe_name = sanitize_filename(raw_name)
+                if not safe_name:
+                    safe_name = "未命名附件"
+                _, ext = os.path.splitext(src)
+                if ext and not safe_name.lower().endswith(ext.lower()):
+                    safe_name = safe_name + ext
+                dst = ensure_unique_path(Path(final_dir) / safe_name)
+                shutil.move(src, str(dst))
+                rel_path = f"uploads/submission_{sid}/{dst.name}"
+
+                name_lower = safe_name.lower()
+                if '版权' in name_lower or '协议' in name_lower:
+                    ftype = '著作权协议'
+                elif '查重' in name_lower:
+                    ftype = '查重报告'
+                elif '修改说明' in name_lower:
+                    ftype = '修改说明'
+                elif not has_original and ext.lower() in ('.doc', '.docx', '.pdf'):
+                    ftype = '原稿'
+                    has_original = True
+                else:
+                    ftype = '附件'
+
+                conn.execute(
+                    "INSERT INTO submission_files (submission_id, filename, file_path, file_type, source, version_label, uploaded_by_role) VALUES (?,?,?,?,?,?,?)",
+                    (sid, dst.name, rel_path, ftype, 'email', '原稿', 'author'),
+                )
+
+            # 更新主文件路径
+            existing_files = conn.execute(
+                "SELECT file_path FROM submission_files WHERE submission_id=? ORDER BY id LIMIT 1",
+                (sid,),
+            ).fetchone()
+            if existing_files:
+                conn.execute("UPDATE submissions SET file_path=? WHERE id=?", (existing_files["file_path"], sid))
+
+            conn.execute(
+                "UPDATE email_staging SET status='已录入', needs_review=0, imported_submission_id=? WHERE id=?",
+                (sid, staging_id),
+            )
+
         log_activity(conn, "submission", sid, "录入稿件", f"标题: {title}")
         conn.commit()
         conn.close()
         flash(f"稿件已录入，ID={sid}", "success")
         return redirect(url_for("submission_detail", sid=sid))
 
+    # GET: render form with pre-filled data from staging
     conn.close()
-    return render_template("submission_add.html", fields=FIELDS, authors=authors, statuses=STATUSES)
+    return render_template("submission_add.html", fields=FIELDS, authors=authors,
+                           statuses=STATUSES, staging=staging,
+                           staging_attachments=staging_attachments,
+                           staging_authors=staging_authors)
+
+
+@app.route("/email-staging/<int:eid>/ignore", methods=["POST"])
+@login_required
+@admin_required
+def staging_ignore(eid):
+    conn = get_conn()
+    conn.execute("UPDATE email_staging SET status='已忽略', needs_review=0 WHERE id=?", (eid,))
+    log_activity(conn, "email_staging", eid, "忽略邮件", "")
+    conn.commit()
+    conn.close()
+    flash("邮件已忽略", "info")
+    return redirect(url_for("intake_manage"))
 
 
 @app.route("/submissions/<int:sid>/status", methods=["POST"])
@@ -801,6 +891,10 @@ def submission_edit(sid):
 @admin_required
 def submission_delete(sid):
     conn = get_conn()
+    # 先删除关联的附件文件记录（FK 约束）
+    conn.execute("DELETE FROM submission_files WHERE submission_id=?", (sid,))
+    conn.execute("DELETE FROM review_rounds WHERE submission_id=?", (sid,))
+    conn.execute("DELETE FROM author_notifications WHERE submission_id=?", (sid,))
     conn.execute("DELETE FROM assignments WHERE submission_id=?", (sid,))
     conn.execute("DELETE FROM submissions WHERE id=?", (sid,))
     log_activity(conn, "submission", sid, "删除稿件", "")
