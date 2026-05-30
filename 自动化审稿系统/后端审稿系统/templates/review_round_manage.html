@@ -15,7 +15,7 @@
 <!-- 统计条 -->
 <div class="metric-strip mb-2">
     <div class="metric-item">
-        <div class="metric-num text-blue">{{ submissions_data|length }}</div>
+        <div class="metric-num text-blue">{{ total_items }}</div>
         <div class="metric-label">全部</div>
     </div>
     <div class="metric-item">
@@ -31,23 +31,40 @@
         <div class="metric-label">部分审回</div>
     </div>
     <div class="metric-item">
-        <div class="metric-num text-orange">{{ status_counts.get('待回复', 0) }}</div>
-        <div class="metric-label">待回复</div>
+        <div class="metric-num text-orange">{{ status_counts.get('待主编处理', 0) + status_counts.get('待通知作者', 0) }}</div>
+        <div class="metric-label">待决定/通知</div>
     </div>
     <div class="metric-item" style="border-right:none">
-        <div class="metric-num text-green">{{ status_counts.get('待修改后回复', 0) + status_counts.get('已通过', 0) + status_counts.get('已进入下一轮', 0) + status_counts.get('已退稿', 0) }}</div>
+        <div class="metric-num text-green">{{ status_counts.get('已通过', 0) + status_counts.get('已进入下一轮', 0) + status_counts.get('已退稿', 0) }}</div>
         <div class="metric-label">已处理</div>
     </div>
 </div>
 
+<!-- 搜索 + 筛选 -->
+<div class="d-flex gap-2 mb-2">
+    <form method="GET" action="{{ url_for('review_round_manage', round_name=round_name) }}" class="d-flex gap-2 flex-grow-1">
+        <input type="text" name="kw" class="form-control form-control-sm" placeholder="标题/作者关键词" value="{{ filter_kw }}" style="max-width:200px">
+        <select name="field" class="form-select form-select-sm" style="max-width:140px">
+            <option value="">全部学科</option>
+            {% for f in ['民法','商法','知识产权法','经济法','数据法','民事诉讼法','国际法','刑法','刑事诉讼法','法理学','宪法与行政法','环境法','劳动法','法律史','其他'] %}
+            <option value="{{ f }}" {% if filter_field == f %}selected{% endif %}>{{ f }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i></button>
+        {% if filter_kw or filter_field %}
+        <a href="{{ url_for('review_round_manage', round_name=round_name) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-lg"></i> 清除</a>
+        {% endif %}
+    </form>
+</div>
+
 <!-- 状态快捷筛选 chips -->
 <div class="filter-chips mb-2">
-    <a href="#" class="chip active filter-chip" data-status="">全部</a>
+    <a href="#" class="chip filter-chip active" data-status="">全部</a>
     <a href="#" class="chip filter-chip" data-status="待派稿">待派稿</a>
     <a href="#" class="chip filter-chip" data-status="待审回">待审回</a>
     <a href="#" class="chip filter-chip" data-status="部分审回">部分审回</a>
-    <a href="#" class="chip filter-chip" data-status="待回复">待回复</a>
-    <a href="#" class="chip filter-chip" data-status="待修改后回复">待修改后回复</a>
+    <a href="#" class="chip filter-chip" data-status="待主编处理">待主编处理</a>
+    <a href="#" class="chip filter-chip" data-status="待通知作者">待通知作者</a>
     <a href="#" class="chip filter-chip" data-status="已结束">已结束</a>
 </div>
 
@@ -114,9 +131,9 @@
                             {% else %}<span class="text-muted">-</span>{% endif %}
                         </td>
                         <td>
-                            {% if d.round.author_reply_status == '已回复' %}
+                            {% if d.round.author_reply_status == '已发送' %}
                             <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="fs-small text-success">已回复</span>
+                            <span class="fs-small text-success">已回复作者</span>
                             {% elif d.round.author_reply_status == '无需回复' %}
                             <span class="text-muted fs-small">-</span>
                             {% elif d.round.chief_decision in ('退稿','返修') %}
@@ -130,8 +147,8 @@
                                 {% if d.display_status == '待派稿' %}bg-secondary text-white
                                 {% elif d.display_status == '待审回' %}status-审稿中
                                 {% elif d.display_status == '部分审回' %}bg-info text-dark
-                                {% elif d.display_status == '待回复' %}bg-warning text-dark
-                                {% elif d.display_status == '待修改后回复' %}status-返修中
+                                {% elif d.display_status == '待主编处理' %}bg-warning text-dark
+                                {% elif d.display_status == '待通知作者' %}status-返修中
                                 {% elif d.display_status in ('已退稿',) %}status-已退稿
                                 {% elif d.display_status in ('已通过','已进入下一轮') %}status-已录用
                                 {% else %}bg-secondary{% endif %}">{{ d.display_status }}</span>
@@ -158,6 +175,30 @@
         {% endif %}
     </div>
 </div>
+
+<!-- 分页 -->
+{% if total_pages > 1 %}
+<nav class="d-flex justify-content-between align-items-center mt-2">
+    <span class="text-muted fs-small">共 {{ total_items }} 篇，第 {{ page }}/{{ total_pages }} 页</span>
+    <ul class="pagination pagination-sm mb-0">
+        {% if page > 1 %}
+        <li class="page-item"><a class="page-link" href="?page={{ page - 1 }}&status={{ filter_status }}&kw={{ filter_kw }}&field={{ filter_field }}">上一页</a></li>
+        {% endif %}
+        {% for p in range(1, total_pages + 1) %}
+        {% if p == page %}
+        <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+        {% elif p <= 3 or p > total_pages - 3 or (p >= page - 1 and p <= page + 1) %}
+        <li class="page-item"><a class="page-link" href="?page={{ p }}&status={{ filter_status }}&kw={{ filter_kw }}&field={{ filter_field }}">{{ p }}</a></li>
+        {% elif p == 4 or p == total_pages - 3 %}
+        <li class="page-item disabled"><span class="page-link">...</span></li>
+        {% endif %}
+        {% endfor %}
+        {% if page < total_pages %}
+        <li class="page-item"><a class="page-link" href="?page={{ page + 1 }}&status={{ filter_status }}&kw={{ filter_kw }}&field={{ filter_field }}">下一页</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 
 {% if round_name == '三审' %}
 <div class="alert alert-info py-1 mb-2" style="font-size:11px">

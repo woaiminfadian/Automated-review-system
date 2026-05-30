@@ -8,8 +8,6 @@ from flask import Flask, render_template, request, redirect, url_for, flash, sen
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from pathlib import Path
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
 
 DB_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(DB_DIR, "journal.db")
@@ -104,21 +102,124 @@ def get_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA busy_timeout=5000")
     return conn
 
 
 def ensure_schema():
-    """Ensure assignments table has all required scoring columns."""
+    """幂等补齐所有缺失的表和字段，确保与最新 schema 一致。"""
     conn = get_conn()
-    cols = [r[1] for r in conn.execute("PRAGMA table_info(assignments)").fetchall()]
-    migrations = [
+    existing_tables = {
+        r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()
+    }
+
+    def col_exists(table, column):
+        cols = [r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
+        return column in cols
+
+    def add_col(table, column, col_def):
+        if not col_exists(table, column):
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}")
+            print(f"  ensure_schema: + {table}.{column} ({col_def})")
+
+    # ── submissions 新字段 ──
+    for col, defn in [
+        ("workflow_stage", "TEXT DEFAULT '待匿名'"),
+        ("current_round", "TEXT DEFAULT '一审'"),
+        ("final_decision", "TEXT"),
+        ("needs_author_reply", "INTEGER DEFAULT 0"),
+        ("author_replied_at", "TEXT"),
+        ("anonymized", "INTEGER DEFAULT 0"),
+        ("anonymous_file_id", "INTEGER"),
+    ]:
+        add_col("submissions", col, defn)
+
+    # ── assignments 新字段 ──
+    for col, defn in [
+        ("score_topic", "REAL"),
         ("score_viewpoint", "REAL"),
+        ("score_argument", "REAL"),
+        ("score_innovation", "REAL"),
+        ("score_standard", "REAL"),
         ("score_reference", "REAL"),
         ("score_structure", "REAL"),
-    ]
-    for col_name, col_type in migrations:
-        if col_name not in cols:
-            conn.execute(f"ALTER TABLE assignments ADD COLUMN {col_name} {col_type}")
+        ("score_total", "REAL"),
+        ("review_opinion", "TEXT"),
+        ("review_comment", "TEXT"),
+        ("file_review", "TEXT"),
+        ("file_annotated", "TEXT"),
+        ("reviewed_at", "TEXT"),
+        ("review_round_id", "INTEGER REFERENCES review_rounds(id)"),
+        ("editor_recommendation", "TEXT"),
+        ("returned", "INTEGER DEFAULT 0"),
+    ]:
+        add_col("assignments", col, defn)
+
+    # ── submission_files 新字段 ──
+    for col, defn in [
+        ("round_name", "TEXT"),
+        ("version_label", "TEXT"),
+        ("uploaded_by_role", "TEXT"),
+        ("related_assignment_id", "INTEGER"),
+        ("source", "TEXT DEFAULT 'email'"),
+    ]:
+        add_col("submission_files", col, defn)
+
+    # ── email_staging 新字段 ──
+    add_col("email_staging", "imported_submission_id", "INTEGER")
+
+    # ── review_rounds 表 ──
+    if "review_rounds" not in existing_tables:
+        conn.execute("""
+            CREATE TABLE review_rounds (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+                round_name TEXT NOT NULL,
+                status TEXT DEFAULT '未开始',
+                chief_decision TEXT,
+                decision_date TEXT,
+                author_reply_status TEXT DEFAULT '无需回复',
+                author_replied_at TEXT,
+                revision_due_at TEXT,
+                notes TEXT,
+                created_at TEXT DEFAULT (datetime('now','localtime')),
+                updated_at TEXT DEFAULT (datetime('now','localtime'))
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_review_rounds_sub ON review_rounds(submission_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_review_rounds_status ON review_rounds(status)")
+        print("  ensure_schema: + review_rounds 表已创建")
+
+    # ── author_notifications 表 ──
+    if "author_notifications" not in existing_tables:
+        conn.execute("""
+            CREATE TABLE author_notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+                review_round_id INTEGER REFERENCES review_rounds(id),
+                notification_type TEXT,
+                result_label TEXT,
+                subject TEXT,
+                body TEXT,
+                draft_path TEXT,
+                status TEXT DEFAULT '草稿',
+                sent_at TEXT,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_author_notif_sub ON author_notifications(submission_id)")
+        print("  ensure_schema: + author_notifications 表已创建")
+
+    # ── 索引 ──
+    for idx_sql in [
+        "CREATE INDEX IF NOT EXISTS idx_assignments_editor ON assignments(editor_id)",
+        "CREATE INDEX IF NOT EXISTS idx_assignments_submission ON assignments(submission_id)",
+        "CREATE INDEX IF NOT EXISTS idx_submission_files_sub ON submission_files(submission_id)",
+    ]:
+        conn.execute(idx_sql)
+
     conn.commit()
     conn.close()
 
@@ -297,30 +398,33 @@ def get_round_display_status(submission, round_row, assignments):
     returned = sum(1 for a in assignments if a.get("returned"))
     chief = (round_row.get("chief_decision") or "").strip() if round_row else ""
     round_name = (round_row.get("round_name") or submission.get("current_round") or "")
+    author_status = (round_row.get("author_reply_status") or "") if round_row else ""
 
     if returned == 0:
         return "待审回"
     elif returned < total:
         return "部分审回"
 
+    # 全部返回但主编未决定
     if not chief:
-        return "待回复"
+        return "待主编处理"
 
     if chief == "退稿":
-        return "已退稿"
+        if author_status == "已发送":
+            return "已退稿"
+        return "待通知作者"
 
     if chief == "返修":
-        author_status = (round_row.get("author_reply_status") or "") if round_row else ""
-        if author_status == "已回复":
-            return "已进入下一轮"
-        return "待修改后回复"
+        if author_status == "已发送":
+            return "待作者返修"
+        return "待通知作者"
 
     if chief == "通过":
         if round_name == "三审":
             return "已通过"
         return "已进入下一轮"
 
-    return "待回复"
+    return "待主编处理"
 
 
 def get_round_next_action(submission, round_row, assignments):
@@ -350,25 +454,26 @@ def get_round_next_action(submission, round_row, assignments):
                 "url": f"/assignments/add?sid={sid}&round={round_name}",
                 "kind": "outline-secondary"
             })
-    elif status == "待回复":
+    elif status == "待主编处理":
         if rid:
             actions.append({
                 "label": "汇总决定",
                 "url": f"/submissions/{sid}#rounds",
                 "kind": "warning"
             })
-    elif status == "待修改后回复":
+    elif status == "待通知作者":
+        if rid:
+            actions.append({
+                "label": "标记已回复作者",
+                "url": f"/submissions/{sid}#rounds",
+                "kind": "success"
+            })
+    elif status == "待作者返修":
         actions.append({
             "label": "上传返修稿",
             "url": f"/submissions/{sid}",
             "kind": "primary"
         })
-        if rid:
-            actions.append({
-                "label": "标记已回复",
-                "url": f"/submissions/{sid}#rounds",
-                "kind": "success"
-            })
 
     return actions
 
@@ -392,7 +497,7 @@ def ensure_upload_dir():
 def json_loads_filter(s):
     try:
         return json.loads(s) if s else []
-    except:
+    except (json.JSONDecodeError, TypeError):
         return []
 
 
@@ -1187,16 +1292,35 @@ def review_round_manage(round_name):
         flash("无效的轮次名称", "danger")
         return redirect(url_for("dashboard"))
 
+    # 查询参数
+    filter_status = request.args.get("status", "").strip()
+    filter_kw = request.args.get("kw", "").strip()
+    filter_field = request.args.get("field", "").strip()
+    page = max(1, int(request.args.get("page", "1") or "1"))
+    per_page = 20
+
     conn = get_conn()
+    where_clauses = ["rr.round_name = ?"]
+    params = [round_name]
+
+    if filter_status:
+        where_clauses.append("s.status = ?")
+        params.append(filter_status)
+    if filter_field:
+        where_clauses.append("s.field = ?")
+        params.append(filter_field)
+
+    where_sql = " AND ".join(where_clauses)
 
     # 查询该轮次的所有 review_rounds
     rounds_rows = conn.execute(
-        """SELECT rr.id, rr.submission_id, rr.round_name, rr.status, rr.chief_decision,
+        f"""SELECT rr.id, rr.submission_id, rr.round_name, rr.status, rr.chief_decision,
                   rr.decision_date, rr.author_reply_status, rr.author_replied_at
            FROM review_rounds rr
-           WHERE rr.round_name = ?
+           JOIN submissions s ON s.id = rr.submission_id
+           WHERE {where_sql}
            ORDER BY rr.submission_id DESC""",
-        (round_name,),
+        params,
     ).fetchall()
 
     # 按 submission_id 分组
@@ -1233,6 +1357,14 @@ def review_round_manage(round_name):
         display_status = get_round_display_status(sub_dict, rr_dict, assigns_list)
         next_actions = get_round_next_action(sub_dict, rr_dict, assigns_list)
 
+        # 关键词筛选（标题或作者名）
+        if filter_kw:
+            kw_lower = filter_kw.lower()
+            title_match = kw_lower in (sub_dict.get("title") or "").lower()
+            author_match = kw_lower in (sub_dict.get("author1") or "").lower()
+            if not (title_match or author_match):
+                continue
+
         submissions_data.append({
             "submission": sub_dict,
             "round": rr_dict,
@@ -1245,16 +1377,25 @@ def review_round_manage(round_name):
 
     conn.close()
 
-    # 统计
+    # 统计（全量）
     status_counts = {}
     for d in submissions_data:
         s = d["display_status"]
         status_counts[s] = status_counts.get(s, 0) + 1
 
+    # 分页
+    total_items = len(submissions_data)
+    total_pages = max(1, (total_items + per_page - 1) // per_page)
+    page = min(page, total_pages)
+    start_idx = (page - 1) * per_page
+    paged_data = submissions_data[start_idx:start_idx + per_page]
+
     return render_template("review_round_manage.html",
                            round_name=round_name,
-                           submissions_data=submissions_data,
-                           status_counts=status_counts)
+                           submissions_data=paged_data,
+                           status_counts=status_counts,
+                           page=page, total_pages=total_pages, total_items=total_items,
+                           filter_status=filter_status, filter_kw=filter_kw, filter_field=filter_field)
 
 
 # ── 派稿管理 (管理员) ─────────────────────────────
@@ -1309,18 +1450,26 @@ def assignment_add():
         conn.commit()
         conn.close()
         flash("派稿成功", "success")
-        return redirect(url_for("review_round_manage", round_name="一审"))
+        return redirect(url_for("review_round_manage", round_name=round_name))
 
+    # URL 参数：sid + round 预选稿件和轮次
+    preselected_sid = request.args.get("sid", "").strip()
+    preselected_round = request.args.get("round", "").strip()
+    if preselected_round and preselected_round not in ROUNDS:
+        preselected_round = ""
+
+    # 可选稿件：按 workflow_stage 筛选待派稿
     pend = conn.execute("""
         SELECT s.id, s.title, s.field, s.status, s.workflow_stage, s.current_round, a.name AS author1
         FROM submissions s
         LEFT JOIN authors a ON s.author1_id = a.id
-        WHERE s.status IN ('待处理','派稿中','审稿中','返修中')
+        WHERE s.workflow_stage IN ('待派一审','待派二审','待派三审')
         ORDER BY s.id DESC
     """).fetchall()
     editors = conn.execute("SELECT id, name, email, subjects FROM editors WHERE active=1 ORDER BY name").fetchall()
     conn.close()
-    return render_template("assignment_add.html", pend=pend, editors=editors, rounds=ROUNDS)
+    return render_template("assignment_add.html", pend=pend, editors=editors, rounds=ROUNDS,
+                           preselected_sid=preselected_sid, preselected_round=preselected_round)
 
 
 @app.route("/assignments/<int:aid>/update", methods=["POST"])
@@ -1354,6 +1503,31 @@ def assignment_update(aid):
     conn.close()
     flash(f"派稿记录 {aid} 已更新（这是编辑意见，主编汇总决定请到稿件详情页操作）", "success")
     return redirect(url_for("review_round_manage", round_name="一审"))
+
+
+# ── 人员管理聚合页 ─────────────────────────────────
+
+@app.route("/people")
+@login_required
+@admin_required
+def people_overview():
+    conn = get_conn()
+    author_count = conn.execute("SELECT COUNT(*) FROM authors").fetchone()[0]
+    editor_count = conn.execute("SELECT COUNT(*) FROM editors").fetchone()[0]
+    active_editor_count = conn.execute("SELECT COUNT(*) FROM editors WHERE active=1").fetchone()[0]
+    recent_authors = conn.execute(
+        "SELECT * FROM authors ORDER BY id DESC LIMIT 10"
+    ).fetchall()
+    editors = conn.execute(
+        "SELECT id, name, email, role, subjects, active FROM editors ORDER BY active DESC, name"
+    ).fetchall()
+    conn.close()
+    return render_template("people.html",
+                           author_count=author_count,
+                           editor_count=editor_count,
+                           active_editor_count=active_editor_count,
+                           recent_authors=recent_authors,
+                           editors=editors)
 
 
 # ── 作者管理 ────────────────────────────────────────
@@ -1532,8 +1706,16 @@ def editor_edit(eid):
         return redirect(url_for("editors_list"))
     name = request.form.get("name", "").strip()
     if not name:
-        flash("请填写姓名", "danger")
         conn.close()
+        flash("请填写姓名", "danger")
+        return redirect(url_for("editors_list"))
+    conn.execute("UPDATE editors SET name=?, updated_at=datetime('now','localtime') WHERE id=?", (name, eid))
+    log_activity(conn, "editor", eid, "编辑信息", f"姓名: {name}")
+    conn.commit()
+    conn.close()
+    flash(f"编辑 {name} 信息已更新", "success")
+    return redirect(url_for("editors_list"))
+
 @app.route("/editors/<int:eid>/delete", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -1557,24 +1739,6 @@ def editor_delete(eid):
     conn.close()
     flash(f"编辑 {editor['name']} 已删除", "success")
     return redirect(url_for("editors_list"))
-
-@login_required
-@admin_required
-def editor_delete(eid):
-    conn = get_conn()
-    editor = conn.execute("SELECT name FROM editors WHERE id=?", (eid,)).fetchone()
-    if not editor:
-        conn.close()
-        flash("编辑不存在", "danger")
-        return redirect(url_for("editors_list"))
-    conn.execute("DELETE FROM assignments WHERE editor_id=?", (eid,))
-    conn.execute("DELETE FROM editors WHERE id=?", (eid,))
-    log_activity(conn, "editor", eid, "删除编辑", f"姓名: {editor['name']}")
-    conn.commit()
-    conn.close()
-    flash(f"编辑 {editor['name']} 已删除", "success")
-    return redirect(url_for("editors_list"))
-
 
 @app.route("/editors/<int:eid>/set-password", methods=["POST"])
 @login_required
@@ -1683,11 +1847,12 @@ def editor_change_password():
 @login_required
 def editor_review(aid):
     conn = get_conn()
-    assign = conn.execute("""
+    is_admin = current_user.is_admin
+    assign = conn.execute(f"""
         SELECT a.*, s.title, s.field, s.submission_type, s.file_path,
                s.anonymized,
-               au.name AS author_name,
-               au.affiliation AS author_aff
+               {'au.name' if is_admin else "CASE WHEN s.anonymized=1 THEN au.name ELSE '盲审中' END"} AS author_name,
+               {'au.affiliation' if is_admin else "CASE WHEN s.anonymized=1 THEN au.affiliation ELSE '' END"} AS author_aff
         FROM assignments a
         JOIN submissions s ON a.submission_id = s.id
         LEFT JOIN authors au ON s.author1_id = au.id
@@ -1799,6 +1964,23 @@ def editor_review(aid):
               score_total,
               review_opinion, file_review, file_annotated, now, editor_rec, aid))
 
+        # 归档审稿附件到 submission_files
+        submission_files_dir = os.path.join(UPLOAD_DIR, f"review_{aid}")
+        round_info = conn.execute(
+            "SELECT round_name FROM review_rounds WHERE id=?", (rid,)
+        ).fetchone() if rid else None
+        rn = round_info["round_name"] if round_info else assign["round"]
+        if file_review and file_review != (assign["file_review"] or ""):
+            conn.execute(
+                "INSERT INTO submission_files (submission_id, filename, file_path, file_type, round_name, uploaded_by_role, related_assignment_id) VALUES (?,?,?,?,?,?,?)",
+                (assign["submission_id"], os.path.basename(file_review), file_review, "审稿评分表", rn, "editor", aid),
+            )
+        if file_annotated and file_annotated != (assign["file_annotated"] or ""):
+            conn.execute(
+                "INSERT INTO submission_files (submission_id, filename, file_path, file_type, round_name, uploaded_by_role, related_assignment_id) VALUES (?,?,?,?,?,?,?)",
+                (assign["submission_id"], os.path.basename(file_annotated), file_annotated, "批注稿", rn, "editor", aid),
+            )
+
         # 判断同轮是否全部返回
         rid = assign["review_round_id"]
         if rid and check_round_complete(conn, rid):
@@ -1839,6 +2021,7 @@ def editor_review(aid):
                            submission_main_file=submission_main_file,
                            round_status=round_status)
 
+@app.route("/editor/retract/<int:aid>", methods=["POST"])
 @login_required
 def editor_retract(aid):
     conn = get_conn()
@@ -2144,7 +2327,12 @@ def api_email_fetch():
         conn.commit()
 
     conn.close()
-    return {"summary": summary, "staged": staged}
+
+    new_count = summary["new"]
+    message = f"成功抓取 {new_count} 封新邮件"
+    if summary["skipped_non_submission"]:
+        message += f"，跳过 {summary['skipped_non_submission']} 封非投稿邮件"
+    return {"success": True, "summary": summary, "staged": staged, "message": message}
 
 
 @app.route("/api/email/import/<int:staging_id>", methods=["POST"])
@@ -2296,6 +2484,7 @@ def api_email_import(staging_id):
 def email_inbox():
     # 旧入口 → 重定向到收稿管理
     return redirect(url_for("intake_manage"))
+@app.route("/email/staging/<int:staging_id>/update", methods=["POST"])
 @login_required
 @admin_required
 def email_staging_update(staging_id):
@@ -2362,6 +2551,99 @@ def email_staging_undismiss(staging_id):
     conn.commit()
     conn.close()
     return {"success": True}
+
+
+@app.route("/api/email/import/<int:staging_id>/as-revision", methods=["POST"])
+@login_required
+@admin_required
+def email_import_as_revision(staging_id):
+    """将邮件附件作为返修稿导入既有稿件"""
+    from journal_automation.utils import sanitize_filename, ensure_unique_path
+
+    conn = get_conn()
+    staging = conn.execute("SELECT * FROM email_staging WHERE id=?", (staging_id,)).fetchone()
+    if not staging:
+        conn.close()
+        return {"success": False, "error": "邮件暂存记录不存在"}, 404
+
+    sid = request.form.get("submission_id", "").strip()
+    if not sid:
+        data = request.get_json() or {}
+        sid = str(data.get("submission_id", "")).strip()
+    if not sid:
+        conn.close()
+        return {"success": False, "error": "缺少 submission_id"}, 400
+
+    try:
+        sid = int(sid)
+    except ValueError:
+        conn.close()
+        return {"success": False, "error": "无效的 submission_id"}, 400
+
+    sub = conn.execute(
+        "SELECT id, workflow_stage, current_round FROM submissions WHERE id=?", (sid,)
+    ).fetchone()
+    if not sub:
+        conn.close()
+        return {"success": False, "error": "稿件不存在"}, 404
+
+    wf = (sub["workflow_stage"] or "").strip()
+    if wf != "待作者返修":
+        conn.close()
+        return {"success": False, "error": f"稿件当前阶段为 '{wf}'，不支持作为返修稿导入"}, 400
+
+    cur_round = sub["current_round"]
+    next_round = {"一审": "二审", "二审": "三审"}.get(cur_round)
+    now = datetime.now().strftime("%Y.%m.%d %H:%M")
+
+    # 保存邮件附件
+    ensure_upload_dir()
+    attachments = staging["attachments_json"]
+    att_list = json.loads(attachments) if attachments else []
+    saved = 0
+    for att in att_list:
+        filename = att.get("filename", "")
+        # 附件文件已经保存在 uploads 目录中（在邮件 fetch 时处理）
+        # 这里只创建 submission_files 记录
+        ext = os.path.splitext(filename)[1].lower()
+        if ext not in ALLOWED_EXT:
+            continue
+        subdir = os.path.join(UPLOAD_DIR, f"submission_{sid}")
+        os.makedirs(subdir, exist_ok=True)
+        safe_name = sanitize_filename(filename)
+        if not safe_name.lower().endswith(ext):
+            safe_name = safe_name + ext
+        dst = ensure_unique_path(Path(subdir) / safe_name)
+        # 尝试从 staging 附件位置复制
+        staging_path = os.path.join(UPLOAD_DIR, f"staging_{staging_id}", filename)
+        if os.path.exists(staging_path):
+            shutil.copy2(staging_path, str(dst))
+        rel_path = f"uploads/submission_{sid}/{dst.name}"
+        conn.execute(
+            "INSERT INTO submission_files (submission_id, filename, file_path, file_type, round_name, version_label, uploaded_by_role) VALUES (?,?,?,?,?,?,?)",
+            (sid, filename, rel_path, "返修稿", cur_round, "返修稿", "admin"),
+        )
+        saved += 1
+
+    if next_round:
+        conn.execute(
+            "UPDATE submissions SET current_round=?, workflow_stage=?, updated_at=? WHERE id=?",
+            (next_round, f"待派{next_round}", now, sid),
+        )
+        get_or_create_review_round(conn, sid, next_round)
+        # 更新原轮次 review_rounds 状态
+        conn.execute(
+            "UPDATE review_rounds SET status='已完成', updated_at=? WHERE submission_id=? AND round_name=?",
+            (now, sid, cur_round),
+        )
+
+    conn.execute("UPDATE email_staging SET status='已录入', imported_submission_id=? WHERE id=?", (sid, staging_id))
+    log_activity(conn, "submission", sid, "邮件导入返修稿",
+                 f"轮次: {cur_round} → {next_round or '已完成'}, 附件: {saved} 个")
+    conn.commit()
+    conn.close()
+    return {"success": True, "submission_id": sid, "saved_files": saved,
+            "message": f"已导入 {saved} 个返修稿附件，流程推进至 {next_round or '已完成'}"}
 
 
 # ── 启动 ────────────────────────────────────────────

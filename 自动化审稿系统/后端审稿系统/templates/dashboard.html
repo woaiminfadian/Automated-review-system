@@ -16,13 +16,6 @@
         <h4>编辑部总览</h4>
         <span class="text-muted">中国政法大学研究生学报 · 审稿工作台</span>
     </div>
-    <div class="action-bar">
-        <button class="btn btn-sm btn-outline-info" onclick="fetchNewEmails()" title="从邮箱抓取新投稿">
-            <i class="bi bi-cloud-download"></i> 检测新邮件
-        </button>
-        <a href="{{ url_for('submission_add') }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> 录入新稿件</a>
-        <a href="{{ url_for('assignment_add') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-send"></i> 新建派稿</a>
-    </div>
 </div>
 
 <!-- Compact metric strip -->
@@ -174,26 +167,5 @@ async function updateDashboardPending() {
     } catch(e) {}
 }
 document.addEventListener('DOMContentLoaded', updateDashboardPending);
-
-// 从仪表盘触发邮件抓取
-async function fetchNewEmails() {
-    showToast('正在连接邮箱服务器...', 'info');
-    try {
-        const resp = await fetch('/api/email/fetch', { method: 'POST' });
-        const data = await resp.json();
-        if (data.error) {
-            showToast(data.error, 'danger');
-            return;
-        }
-        if (data.staged.length === 0) {
-            showToast('没有新投稿邮件', 'info');
-        } else {
-            showToast('发现 ' + data.staged.length + ' 封新投稿邮件', 'success');
-            setTimeout(() => location.reload(), 1000);
-        }
-    } catch(e) {
-        showToast('网络错误: ' + e.message, 'danger');
-    }
-}
 </script>
 {% endblock %}

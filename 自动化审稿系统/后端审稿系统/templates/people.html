@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}人员管理{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h4>人员管理</h4>
+    <span class="text-muted">作者信息库 · 编辑账号管理</span>
+</div>
+
+<!-- 统计条 -->
+<div class="metric-strip mb-2">
+    <div class="metric-item">
+        <div class="metric-num text-blue">{{ author_count }}</div>
+        <div class="metric-label">作者总数</div>
+    </div>
+    <div class="metric-item">
+        <div class="metric-num text-green">{{ active_editor_count }}</div>
+        <div class="metric-label">活跃编辑</div>
+    </div>
+    <div class="metric-item" style="border-right:none">
+        <div class="metric-num text-purple">{{ editor_count }}</div>
+        <div class="metric-label">编辑总数</div>
+    </div>
+</div>
+
+<!-- Tab 切换 -->
+<ul class="nav nav-tabs mb-3" id="peopleTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="authors-tab" data-bs-toggle="tab" data-bs-target="#authors-panel" type="button" role="tab">
+            <i class="bi bi-people"></i> 作者管理
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="editors-tab" data-bs-toggle="tab" data-bs-target="#editors-panel" type="button" role="tab">
+            <i class="bi bi-person-badge"></i> 编辑管理
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- 作者管理 Tab -->
+    <div class="tab-pane fade show active" id="authors-panel" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw600" style="font-size:13px">最近登记的作者</span>
+            <a href="{{ url_for('authors_list') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-list"></i> 查看全部</a>
+        </div>
+        {% if recent_authors %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead><tr><th>姓名</th><th>单位</th><th>院系/年级</th><th>邮箱</th><th>登记时间</th></tr></thead>
+                <tbody>
+                    {% for a in recent_authors %}
+                    <tr>
+                        <td><a href="{{ url_for('submission_add') }}?author_id={{ a.id }}">{{ a.name }}</a></td>
+                        <td>{{ a.affiliation or '-' }}</td>
+                        <td>{{ a.department or a.grade or '-' }}</td>
+                        <td>{{ a.email or '-' }}</td>
+                        <td class="text-muted fs-small">{{ a.created_at[:10] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-3"><i class="bi bi-people"></i><p>暂无作者</p></div>
+        {% endif %}
+    </div>
+
+    <!-- 编辑管理 Tab -->
+    <div class="tab-pane fade" id="editors-panel" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw600" style="font-size:13px">编辑账号</span>
+            <a href="{{ url_for('editors_list') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-gear"></i> 管理编辑</a>
+        </div>
+        {% if editors %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead><tr><th>姓名</th><th>角色</th><th>邮箱</th><th>学科</th><th>状态</th></tr></thead>
+                <tbody>
+                    {% for e in editors %}
+                    <tr>
+                        <td>{{ e.name }}</td>
+                        <td><span class="badge {% if e.role in ('主编','管理员') %}bg-danger{% else %}bg-secondary{% endif %}">{{ e.role }}</span></td>
+                        <td>{{ e.email or '-' }}</td>
+                        <td>{{ e.subjects or '-' }}</td>
+                        <td>
+                            {% if e.active %}
+                            <span class="badge bg-success">活跃</span>
+                            {% else %}
+                            <span class="badge bg-secondary">停用</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-3"><i class="bi bi-person-badge"></i><p>暂无编辑</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

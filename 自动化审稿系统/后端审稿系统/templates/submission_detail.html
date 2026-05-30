@@ -22,20 +22,18 @@
     </div>
 </div>
 
-<!-- Inline status update -->
-<div class="d-flex align-items-center gap-2 mb-2 p-2 rounded" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06)">
-    <span class="fw600" style="font-size:13px">粗状态:</span>
-    <form method="POST" action="{{ url_for('submission_update_status', sid=sub.id) }}" class="d-flex align-items-center gap-2">
-        <select name="status" class="form-select form-select-sm" style="width:130px">
+<!-- Coarse status — less prominent -->
+<div class="d-flex align-items-center gap-2 mb-2 p-2 rounded" style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06);font-size:11px">
+    <span class="text-muted">状态更新:</span>
+    <form method="POST" action="{{ url_for('submission_update_status', sid=sub.id) }}" class="d-flex align-items-center gap-1">
+        <select name="status" class="form-select form-select-sm" style="width:110px;font-size:11px">
             {% for s in statuses %}
             <option value="{{ s }}" {% if s == sub.status %}selected{% endif %}>{{ s }}</option>
             {% endfor %}
         </select>
-        <button type="submit" class="btn btn-sm btn-primary py-0">更新</button>
+        <button type="submit" class="btn btn-sm btn-outline-secondary py-0" style="font-size:11px">更新</button>
     </form>
-    {% if submission_files %}
-    <span class="ms-3 text-muted" style="font-size:12px">| 附件: {{ submission_files|length }} 个</span>
-    {% endif %}
+    <span class="text-muted ms-auto" style="font-size:11px"><i class="bi bi-info-circle"></i> 这是旧版粗状态，流程以"当前阶段"为准</span>
 </div>
 
 <!-- Workflow stage banner -->

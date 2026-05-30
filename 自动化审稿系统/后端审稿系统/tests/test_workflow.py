@@ -12,7 +12,7 @@ from journal_automation.workflow import prepare_reply_package, sync_submissions,
 
 
 TOOL_ROOT = Path(__file__).resolve().parents[1]
-WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def build_sample_docx(path: Path, text: str) -> None:
@@ -70,14 +70,14 @@ class WorkflowTests(unittest.TestCase):
         workbook.save(self.workbook_path)
 
         self.review_form = self.temp_dir / "审稿评分表.docx"
-        shutil.copy2(WORKSPACE_ROOT / "审稿评分表.docx", self.review_form)
+        build_sample_docx(self.review_form, "审稿评分表模板")
 
         self.law_template = self.temp_dir / "3. 回复作者/中国政法大学研究生学报作者邮件回复模板（法学）.docx"
         self.non_law_template = self.temp_dir / "3. 回复作者/中国政法大学研究生学报作者邮件回复模板（法学以外专业）.docx"
         self.copyright_template = self.temp_dir / "3. 回复作者/附件一、《研究生学报》著作权使用协议模板.docx"
-        shutil.copy2(WORKSPACE_ROOT / "3. 回复作者/中国政法大学研究生学报作者邮件回复模板（法学）.docx", self.law_template)
-        shutil.copy2(WORKSPACE_ROOT / "3. 回复作者/中国政法大学研究生学报作者邮件回复模板（法学以外专业）.docx", self.non_law_template)
-        shutil.copy2(WORKSPACE_ROOT / "3. 回复作者/附件一、《研究生学报》著作权使用协议模板.docx", self.copyright_template)
+        build_sample_docx(self.law_template, "法学回复模板")
+        build_sample_docx(self.non_law_template, "非法学回复模板")
+        build_sample_docx(self.copyright_template, "著作权协议模板")
 
         self.sample_dir = self.temp_dir / "eml"
         self.sample_dir.mkdir()
