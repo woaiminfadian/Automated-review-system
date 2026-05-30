@@ -35,9 +35,11 @@ def migrate():
     # assignments 表加字段
     assign_cols = [
         ("score_topic", "REAL"),
+        ("score_viewpoint", "REAL"),
         ("score_argument", "REAL"),
-        ("score_innovation", "REAL"),
         ("score_standard", "REAL"),
+        ("score_reference", "REAL"),
+        ("score_structure", "REAL"),
         ("score_total", "REAL"),
         ("review_opinion", "TEXT"),
         ("review_comment", "TEXT"),

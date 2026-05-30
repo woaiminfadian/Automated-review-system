@@ -107,6 +107,24 @@ def get_conn():
     return conn
 
 
+def ensure_schema():
+    """Ensure assignments table has all required scoring columns."""
+    conn = get_conn()
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(assignments)").fetchall()]
+    migrations = [
+        ("score_viewpoint", "REAL"),
+        ("score_reference", "REAL"),
+        ("score_structure", "REAL"),
+    ]
+    for col_name, col_type in migrations:
+        if col_name not in cols:
+            conn.execute(f"ALTER TABLE assignments ADD COLUMN {col_name} {col_type}")
+    conn.commit()
+    conn.close()
+
+
+
+
 def log_activity(conn, entity_type, entity_id, action, detail=""):
     conn.execute(
         "INSERT INTO activity_log (entity_type, entity_id, action, detail) VALUES (?,?,?,?)",
@@ -186,12 +204,12 @@ def update_submission_stage(conn, submission_id):
     for r in rounds:
         if r["round_name"] != cur_round:
             continue
-        if r["status"] in ("未开始", "派稿中"):
+        if r["status"] == "未开始":
             conn.execute(
                 "UPDATE submissions SET workflow_stage=? WHERE id=?",
                 (f"待派{cur_round}", submission_id),
             )
-        elif r["status"] == "审稿返回中":
+        elif r["status"] in ("派稿中", "审稿返回中"):
             conn.execute(
                 "UPDATE submissions SET workflow_stage=? WHERE id=?",
                 (f"{cur_round}中", submission_id),
@@ -250,7 +268,7 @@ def get_submission_next_actions(submission_id):
     rid = rr["id"] if rr else None
 
     if wf == "待匿名":
-        actions.append({"label": "上传匿名稿", "url": f"/submissions/{sid}", "kind": "primary"})
+        pass  # 上传匿名稿的表单已在稿件详情页展示，无需额外操作按钮
     elif wf in ("待派一审", "待派二审", "待派三审"):
         actions.append({"label": f"派{sub['current_round']}编辑", "url": f"/assignments/add?sid={sid}", "kind": "primary"})
     elif "中" in wf and "待" not in wf:
@@ -262,7 +280,7 @@ def get_submission_next_actions(submission_id):
         if rid:
             actions.append({"label": "标记已回复作者", "url": f"/submissions/{sid}", "kind": "success"})
     elif wf == "待作者返修":
-        actions.append({"label": "上传返修稿", "url": f"/submissions/{sid}", "kind": "primary"})
+        pass  # 上传返修稿的表单已在稿件详情页展示，无需额外操作按钮
     elif wf == "已通过三审":
         pass  # 终态，无操作
 
@@ -886,16 +904,27 @@ def submission_edit(sid):
     return render_template("submission_edit.html", sub=sub, fields=FIELDS, statuses=STATUSES, authors=authors)
 
 
-@app.route("/submissions/<int:sid>/delete", methods=["POST"])
+@app.route("/submissions/<int:sid>/delete", methods=["GET", "POST"])
 @login_required
 @admin_required
 def submission_delete(sid):
     conn = get_conn()
-    # 先删除关联的附件文件记录（FK 约束）
+    sub = conn.execute("SELECT * FROM submissions WHERE id=?", (sid,)).fetchone()
+    if not sub:
+        conn.close()
+        flash("稿件不存在", "danger")
+        return redirect(url_for("intake_manage"))
+
+    if request.method == "GET":
+        conn.close()
+        return render_template("submission_delete.html", sub=sub)
+
+    # POST — 执行删除（先删子表再删主表，注意 FK 依赖顺序）
     conn.execute("DELETE FROM submission_files WHERE submission_id=?", (sid,))
-    conn.execute("DELETE FROM review_rounds WHERE submission_id=?", (sid,))
     conn.execute("DELETE FROM author_notifications WHERE submission_id=?", (sid,))
+    conn.execute("UPDATE assignments SET review_round_id=NULL WHERE submission_id=?", (sid,))
     conn.execute("DELETE FROM assignments WHERE submission_id=?", (sid,))
+    conn.execute("DELETE FROM review_rounds WHERE submission_id=?", (sid,))
     conn.execute("DELETE FROM submissions WHERE id=?", (sid,))
     log_activity(conn, "submission", sid, "删除稿件", "")
     conn.commit()
@@ -1252,6 +1281,16 @@ def assignment_add():
             flash("请选择稿件和编辑", "danger")
             conn.close()
             return redirect(url_for("assignment_add"))
+        # 同轮次禁止重复派给同一编辑
+        dup = conn.execute(
+            "SELECT id FROM assignments WHERE submission_id=? AND editor_id=? AND round=?",
+            (sid, eid, round_name),
+        ).fetchone()
+        if dup:
+            flash("该编辑已被派为此轮次的审稿人，请勿重复派稿", "danger")
+            conn.close()
+            return redirect(url_for("assignment_add"))
+
         # 获取或创建 review_round
         rid = get_or_create_review_round(conn, sid, round_name)
 
@@ -1388,11 +1427,22 @@ def author_edit(aid):
     return redirect(url_for("authors_list"))
 
 
-@app.route("/authors/<int:aid>/delete", methods=["POST"])
+@app.route("/authors/<int:aid>/delete", methods=["GET", "POST"])
 @login_required
 @admin_required
 def author_delete(aid):
     conn = get_conn()
+    author = conn.execute("SELECT * FROM authors WHERE id=?", (aid,)).fetchone()
+    if not author:
+        conn.close()
+        flash("作者不存在", "danger")
+        return redirect(url_for("authors_list"))
+
+    if request.method == "GET":
+        conn.close()
+        return render_template("author_delete.html", author=author)
+
+    # POST — 执行删除
     conn.execute("UPDATE submissions SET author1_id=NULL WHERE author1_id=?", (aid,))
     conn.execute("UPDATE submissions SET author2_id=NULL WHERE author2_id=?", (aid,))
     conn.execute("DELETE FROM authors WHERE id=?", (aid,))
@@ -1400,6 +1450,8 @@ def author_delete(aid):
     conn.commit()
     conn.close()
     flash("作者已删除", "success")
+    return redirect(url_for("authors_list"))
+
     return redirect(url_for("authors_list"))
 
 
@@ -1482,20 +1534,30 @@ def editor_edit(eid):
     if not name:
         flash("请填写姓名", "danger")
         conn.close()
+@app.route("/editors/<int:eid>/delete", methods=["GET", "POST"])
+@login_required
+@admin_required
+def editor_delete(eid):
+    conn = get_conn()
+    editor = conn.execute("SELECT * FROM editors WHERE id=?", (eid,)).fetchone()
+    if not editor:
+        conn.close()
+        flash("编辑不存在", "danger")
         return redirect(url_for("editors_list"))
-    email = request.form.get("email", "").strip()
-    subjects_raw = request.form.get("subjects", "").strip()
-    subjects_json = json.dumps([s.strip() for s in subjects_raw.split(",") if s.strip()], ensure_ascii=False)
-    conn.execute("UPDATE editors SET name=?, email=?, subjects=? WHERE id=?",
-                  (name, email, subjects_json, eid))
+
+    if request.method == "GET":
+        conn.close()
+        return render_template("editor_delete.html", editor=editor)
+
+    # POST — 执行删除
+    conn.execute("DELETE FROM assignments WHERE editor_id=?", (eid,))
+    conn.execute("DELETE FROM editors WHERE id=?", (eid,))
+    log_activity(conn, "editor", eid, "删除编辑", f"姓名: {editor['name']}")
     conn.commit()
-    log_activity(conn, "editor", eid, "编辑编辑", f"姓名: {name}")
     conn.close()
-    flash(f"编辑 {name} 已更新", "success")
+    flash(f"编辑 {editor['name']} 已删除", "success")
     return redirect(url_for("editors_list"))
 
-
-@app.route("/editors/<int:eid>/delete", methods=["POST"])
 @login_required
 @admin_required
 def editor_delete(eid):
@@ -1624,8 +1686,8 @@ def editor_review(aid):
     assign = conn.execute("""
         SELECT a.*, s.title, s.field, s.submission_type, s.file_path,
                s.anonymized,
-               CASE WHEN s.anonymized=1 THEN au.name ELSE '' END AS author_name,
-               CASE WHEN s.anonymized=1 THEN au.affiliation ELSE '' END AS author_aff
+               au.name AS author_name,
+               au.affiliation AS author_aff
         FROM assignments a
         JOIN submissions s ON a.submission_id = s.id
         LEFT JOIN authors au ON s.author1_id = au.id
@@ -1645,33 +1707,31 @@ def editor_review(aid):
 
     if request.method == "POST":
         score_topic = _float_or_none(request.form.get("score_topic"))
+        score_viewpoint = _float_or_none(request.form.get("score_viewpoint"))
         score_argument = _float_or_none(request.form.get("score_argument"))
-        score_innovation = _float_or_none(request.form.get("score_innovation"))
         score_standard = _float_or_none(request.form.get("score_standard"))
-        score_total = _float_or_none(request.form.get("score_total"))
+        score_reference = _float_or_none(request.form.get("score_reference"))
+        score_structure = _float_or_none(request.form.get("score_structure"))
         review_opinion = request.form.get("review_opinion", "").strip()
-        review_comment = request.form.get("review_comment", "").strip()
 
-        # 验证必填项
+        # 验证必填项：6项评分 + 审稿意见
         missing = []
         if score_topic is None:
-            missing.append("选题")
+            missing.append("论文选题")
+        if score_viewpoint is None:
+            missing.append("论文观点")
         if score_argument is None:
-            missing.append("论证")
-        if score_innovation is None:
-            missing.append("创新")
+            missing.append("论文论证")
         if score_standard is None:
-            missing.append("规范")
-        if score_total is None:
-            missing.append("总分")
+            missing.append("论文规范性")
+        if score_reference is None:
+            missing.append("资料引用与调查实证")
+        if score_structure is None:
+            missing.append("布局结构与文字表达")
         if not review_opinion:
-            missing.append("审定意见")
-        if missing:
-            conn.close()
-            flash(f"请完成以下必填项再提交: {'、'.join(missing)}", "danger")
-            return redirect(url_for("editor_review", aid=aid))
+            missing.append("审稿意见")
 
-        # 文件上传
+        # 文件上传处理（先处理，以便检查 file_review 是否必填）
         file_review = assign["file_review"] or ""
         file_annotated = assign["file_annotated"] or ""
         ensure_upload_dir()
@@ -1705,6 +1765,19 @@ def editor_review(aid):
                     f.save(str(dst))
                     file_annotated = f"uploads/review_{aid}/{dst.name}"
 
+        # 审稿评分表为必选项
+        if not file_review:
+            missing.append("审稿评分表")
+
+        if missing:
+            conn.close()
+            flash(f"请完成以下必填项再提交: {'、'.join(missing)}", "danger")
+            return redirect(url_for("editor_review", aid=aid))
+
+        # 总分为6项之和
+        score_total = round(score_topic + score_viewpoint + score_argument +
+                           score_standard + score_reference + score_structure, 1)
+
         now = datetime.now().strftime("%Y.%m.%d %H:%M")
         _OPINION_TO_RECOMMENDATION = {
             "录用": "通过",
@@ -1715,12 +1788,16 @@ def editor_review(aid):
 
         conn.execute("""
             UPDATE assignments SET
-                score_topic=?, score_argument=?, score_innovation=?, score_standard=?, score_total=?,
-                review_opinion=?, review_comment=?, file_review=?, file_annotated=?,
+                score_topic=?, score_viewpoint=?, score_argument=?,
+                score_standard=?, score_reference=?, score_structure=?,
+                score_total=?,
+                review_opinion=?, review_comment='', file_review=?, file_annotated=?,
                 status='已返回', reviewed_at=?, returned=1, editor_recommendation=?
             WHERE id=?
-        """, (score_topic, score_argument, score_innovation, score_standard, score_total,
-              review_opinion, review_comment, file_review, file_annotated, now, editor_rec, aid))
+        """, (score_topic, score_viewpoint, score_argument,
+              score_standard, score_reference, score_structure,
+              score_total,
+              review_opinion, file_review, file_annotated, now, editor_rec, aid))
 
         # 判断同轮是否全部返回
         rid = assign["review_round_id"]
@@ -1762,8 +1839,6 @@ def editor_review(aid):
                            submission_main_file=submission_main_file,
                            round_status=round_status)
 
-
-@app.route("/editor/review/<int:aid>/retract", methods=["POST"])
 @login_required
 def editor_retract(aid):
     conn = get_conn()
@@ -1788,11 +1863,14 @@ def editor_retract(aid):
     # 清除提交内容，恢复待审状态
     conn.execute("""
         UPDATE assignments SET
-            score_topic=NULL, score_argument=NULL, score_innovation=NULL, score_standard=NULL, score_total=NULL,
+            score_topic=NULL, score_viewpoint=NULL, score_argument=NULL,
+            score_standard=NULL, score_reference=NULL, score_structure=NULL,
+            score_total=NULL,
             review_opinion=NULL, review_comment=NULL, file_review=NULL, file_annotated=NULL,
             status='待审', reviewed_at=NULL, returned=0, editor_recommendation=NULL
         WHERE id=?
     """, (aid,))
+
 
     # 更新轮次状态回退
     rid = assign["review_round_id"]
@@ -1827,34 +1905,44 @@ def _float_or_none(v):
 @app.route("/uploads/<path:filename>")
 @login_required
 def download_file(filename):
-    if not current_user.is_admin:
-        import re
-        # 审稿文件：仅允许编辑本人
-        m = re.match(r'^review_(\d+)/', filename)
-        if m:
-            aid = int(m.group(1))
-            conn = get_conn()
-            owner = conn.execute("SELECT editor_id FROM assignments WHERE id=?", (aid,)).fetchone()
-            conn.close()
-            if not owner or owner[0] != current_user.id:
-                flash("无权下载此文件", "danger")
-                return redirect(url_for("editor_dashboard"))
-        # 稿件原稿：仅允许分配给该稿件的编辑
-        elif re.match(r'^submission_(\d+)/', filename):
-            m2 = re.match(r'^submission_(\d+)/', filename)
-            sid = int(m2.group(1))
-            conn = get_conn()
-            assigned = conn.execute(
-                "SELECT COUNT(*) FROM assignments WHERE submission_id=? AND editor_id=?",
-                (sid, current_user.id),
-            ).fetchone()[0]
-            conn.close()
-            if not assigned:
-                flash("无权下载此文件", "danger")
-                return redirect(url_for("editor_dashboard"))
-        else:
+    import re
+    # 审稿文件：仅允许编辑本人或管理员
+    m = re.match(r'^review_(\d+)/', filename)
+    if m:
+        aid = int(m.group(1))
+        conn = get_conn()
+        owner = conn.execute("SELECT editor_id FROM assignments WHERE id=?", (aid,)).fetchone()
+        conn.close()
+        if not owner or (owner[0] != current_user.id and not current_user.is_admin):
             flash("无权下载此文件", "danger")
             return redirect(url_for("editor_dashboard"))
+    # 稿件原稿：审稿编辑（含主编担任编辑时）仅允许下载匿名稿
+    elif re.match(r'^submission_(\d+)/', filename):
+        m2 = re.match(r'^submission_(\d+)/', filename)
+        sid = int(m2.group(1))
+        conn = get_conn()
+        is_reviewer = conn.execute(
+            "SELECT COUNT(*) FROM assignments WHERE submission_id=? AND editor_id=?",
+            (sid, current_user.id),
+        ).fetchone()[0] > 0
+        conn.close()
+        if not is_reviewer and not current_user.is_admin:
+            flash("无权下载此文件", "danger")
+            return redirect(url_for("editor_dashboard"))
+        # 审稿人（含管理评审稿人）只能下载匿名稿
+        if is_reviewer:
+            conn = get_conn()
+            sf = conn.execute(
+                "SELECT file_type FROM submission_files WHERE submission_id=? AND file_path=?",
+                (sid, "uploads/" + filename),
+            ).fetchone()
+            conn.close()
+            if not sf or sf["file_type"] != "匿名稿":
+                flash("匿名化要求：您只能下载匿名化后的稿件", "danger")
+                return redirect(url_for("editor_dashboard"))
+    else:
+        flash("无权下载此文件", "danger")
+        return redirect(url_for("editor_dashboard"))
     return send_from_directory(UPLOAD_DIR, filename)
 
 
@@ -1870,16 +1958,20 @@ def download_submission_file(sid, fid):
         flash("文件不存在", "danger")
         return redirect(url_for("editor_dashboard"))
 
-    # 权限：管理员 or 该稿件分配给当前编辑
-    if not current_user.is_admin:
-        assigned = conn.execute(
-            "SELECT COUNT(*) FROM assignments WHERE submission_id=? AND editor_id=?",
-            (sid, current_user.id),
-        ).fetchone()[0]
-        if not assigned:
-            conn.close()
-            flash("无权下载此文件", "danger")
-            return redirect(url_for("editor_dashboard"))
+    # 权限：该稿件是否分配给当前用户
+    is_reviewer = conn.execute(
+        "SELECT COUNT(*) FROM assignments WHERE submission_id=? AND editor_id=?",
+        (sid, current_user.id),
+    ).fetchone()[0] > 0
+    if not is_reviewer and not current_user.is_admin:
+        conn.close()
+        flash("无权下载此文件", "danger")
+        return redirect(url_for("editor_dashboard"))
+    # 审稿人（含主编担任编辑时）只能下载匿名稿
+    if is_reviewer and sf["file_type"] != "匿名稿":
+        conn.close()
+        flash("匿名化要求：您只能下载匿名化后的稿件", "danger")
+        return redirect(url_for("editor_dashboard"))
 
     conn.close()
     file_path = os.path.join(DB_DIR, sf["file_path"])
@@ -1894,7 +1986,7 @@ def download_submission_file(sid, fid):
 @login_required
 def download_scoring_template():
     """下载空白审稿评分表模板"""
-    template_path = os.path.join(os.path.dirname(DB_DIR), "审稿评分表.docx")
+    template_path = os.path.join(os.path.dirname(DB_DIR), "docs", "审稿评分表.docx")
     if not os.path.exists(template_path):
         flash("模板文件不存在", "danger")
         return redirect(url_for("editor_dashboard"))
@@ -2276,6 +2368,7 @@ def email_staging_undismiss(staging_id):
 
 
 if __name__ == "__main__":
+    ensure_schema()
     ensure_upload_dir()
     host = os.environ.get("HOST", "127.0.0.1")
     port = int(os.environ.get("PORT", "5000"))
