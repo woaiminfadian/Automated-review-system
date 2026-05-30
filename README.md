@@ -43,7 +43,7 @@
 │   │   └── tests/              # 自动化测试
 │   ├── 前端显示设计/
 │   │   └── templates/          # Jinja2 模板（base、dashboard、intake、review_round_manage、people 等）
-│   └── 启动网页.command        # macOS 启动脚本（默认 0.0.0.0:5678）
+│   └── 启动网页.command        # macOS 启动脚本（默认 0.0.0.0:5678）（默认 0.0.0.0:5678）
 ├── 0. 学报面试/
 ├── 1. 未处理来稿/
 ├── 2. 派稿及回复/
@@ -86,11 +86,6 @@ python3 webapp.py
 ```
 
 默认监听 `0.0.0.0:5678`，启动后仪表盘自动显示本机和局域网访问地址。
-
-```bash
-python3 webapp.py
-# 或使用 macOS 启动脚本（双击 启动网页.command）
-```
 
 > 局域网部署时确保 `DEBUG=false`（默认）并设置 `SECRET_KEY`。
 
